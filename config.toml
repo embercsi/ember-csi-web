@@ -1,0 +1,16 @@
+languageCode = "en-us"
+title = "Ember CSI"
+baseURL = "/"
+theme = "./"
+pygmentsCodeFences = true
+
+[params.portfolio]
+    title = "Getting Started"
+    foldername = "getstarted"
+    findoutmoretext = "Find out more"
+
+[params.blog]
+    title = "Articles"
+    viewalltext = "View All"
+    postsperpage = "6"
+    foldername = "articles"

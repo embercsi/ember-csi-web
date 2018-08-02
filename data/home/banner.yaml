@@ -1,0 +1,3 @@
+line1: 'Try it now!'
+line2: 'Kubernetes + Ember CSI + LVM backend'
+line3: '$ git clone https://github.com/akrog/ember-csi<br>$ cd ember-csi<br>$ ./up.sh<br>$ vagrant ssh master'

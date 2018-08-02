@@ -1,0 +1,19 @@
+sections:
+- icon: 'fa-hdd-o'
+  title: 'Multi-Vendor support'
+  description: 'Different storage for development, preproduction, and production?  Changing storage solutions?  New storage solution from different vendor?  Not a problem! The Ember plugin, with over 80 storage drivers, would only need a configuration change.'
+
+- icon: 'fa-cloud'
+  title: 'Container Agnostic'
+  description: "Ember's CSI implementation provides a unified storage plugin across different container orchestration systems such as Kubernetes, Mesos, and Cloud Foundry."
+
+- icon: 'fa-code-fork'
+  title: 'Open Source'
+  description: 'The Apache license brings Ember users all the benefit from Open Source: lower costs, greater flexibility, more freedom, increased security, and accountability.'
+
+buttons:
+- link: '#getstarted'
+  text: 'Get Started'
+
+- link: '#'
+  text: 'Documentation'
