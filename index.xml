@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Ember CSI</title>
+    <link>/</link>
+    <description>Recent content on Ember CSI</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    
+	<atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>KubeVirt and Ember CSI</title>
+      <link>/getstarted/10-getting-started-kubevirt/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/getstarted/10-getting-started-kubevirt/</guid>
+      <description>To use the Ember-CSI plugin on Kubevirt we need to make changes to our deployment.
+The easiest way to make the changes is to copy this kubevirt directory into a directory of the kubevirt repository, and run the csi_up.sh script from there after the cluster is up and running.
+For now the example only supports single node deployments, and for convenience we are using a pod instead of a StatefulSet and DaemonSets and the permissions are too broad.</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes and Ember CSI</title>
+      <link>/getstarted/01-getting-started-k8s/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/getstarted/01-getting-started-k8s/</guid>
+      <description>Many things need to be considered when deploying a CSI plugin in Kubernetes, making it a painful experience for many first time users. To ease this first contact with Kubernetes and CSI, the Ember repository comes with a Kubernetes example that automates the deployment of Kubernetes with Ember CSI.
+This article covers how to run the demo to deploy a Kubernetes single master cluster on CentOS 7 with 2 additional nodes using kubeadm and Ember-CSI as the storage provider with an LVM loopback device as the backend.</description>
+    </item>
+    
+  </channel>
+</rss>
