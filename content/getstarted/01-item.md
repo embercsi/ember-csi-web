@@ -8,7 +8,7 @@ author = "Gorka Eguileor"
 draft = false
 hidesidebar = true
 +++
-Many things need to be considered when deploying a CSI plugin in Kubernetes, making it a painful experience for many first time users.  To ease this first contact with Kubernetes and CSI, the Ember repository comes with a [Kubernetes example that automates the deployment of Kubernetes with Ember CSI](https://github.com/Akrog/ember-csi/tree/master/examples/kubernetes).
+Many things need to be considered when deploying a CSI plugin in Kubernetes, making it a painful experience for many first time users.  To ease this first contact with Kubernetes and CSI, the Ember repository comes with a [Kubernetes example that automates the deployment of Kubernetes with Ember CSI](https://github.com/embercsi/ember-csi/tree/master/examples/kubernetes).
 
 This article covers how to run the demo to deploy a Kubernetes single master cluster on CentOS 7 with 2 additional nodes using [kubeadm](http://kubernetes.io/docs/admin/kubeadm/) and Ember-CSI as the storage provider with an LVM loopback device as the backend.
 
