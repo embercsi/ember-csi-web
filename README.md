@@ -12,6 +12,10 @@ The source for the website is kept in the `master` branch, and the current publi
 
 To facilitate the publication process we use git's worktree functionality, so the first time we clone the project we need to run:
 
+```
+$ make init
+```
+
 To test how our web would look like we can just execute the `hugo` command from the project's root directory.
 
 If we try to see the `public/index.html` page we'll notice that it doesn't look good due to the absolute paths used in the static pages.  To properly see the pages we need to serve the pages, which can easily be done using `hugo`:
@@ -39,11 +43,6 @@ Press Ctrl+C to stop
 ```
 
 Now the pages will be served on `localhost:1313` and any changes we do to the source files will be rendered automatically.
-
-
-```
-$ make init
-```
 
 When we are ready to generate the website and publish it we have to do:
 
