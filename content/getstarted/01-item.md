@@ -3,10 +3,13 @@ description = "Setting Kubernetes to use CSI plugins is non trivial: Access Cont
 thumbnail = "images/01-getstarted-thumb.jpg"
 image = "images/01-getstarted.jpg"
 title = "Kubernetes and Ember CSI"
-slug = "01-getting-started-k8s"
+slug = "getting-started-k8s"
 author = "Gorka Eguileor"
 draft = false
 hidesidebar = true
+publishDate=2018-08-02T19:05:52+02:00
+lastmod=2019-02-28T16:31:57+01:00
+weight = 1
 +++
 Many things need to be considered when deploying a CSI plugin in Kubernetes, making it a painful experience for many first time users.  To ease this first contact with Kubernetes and CSI, the Ember repository comes with a [Kubernetes example that automates the deployment of Kubernetes with Ember CSI using CSI spec version 1.0](https://github.com/embercsi/ember-csi/tree/master/examples/k8s_v1.13-CSI_v1.0).
 

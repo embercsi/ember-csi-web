@@ -3,10 +3,12 @@ description = "Deploying Kubevirt with a CSI plugin can be tricky, there are mul
 thumbnail = "images/02-getstarted-thumb.jpg"
 image = "images/02-getstarted.jpg"
 title = "KubeVirt and Ember CSI"
-slug = "10-getting-started-kubevirt"
+slug = "getting-started-kubevirt"
 author = "Gorka Eguileor"
 draft = false
 hidesidebar = true
+publishDate=2018-08-02T19:05:52+02:00
+weight = 2
 +++
 To use the Ember-CSI plugin on Kubevirt we need to make changes to our deployment.
 

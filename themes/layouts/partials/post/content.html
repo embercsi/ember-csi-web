@@ -3,8 +3,8 @@
     <a href="#" class="image featured"><img src="{{ .Site.BaseURL }}{{ .Params.image }}" alt="" /></a>
     <header>
         <h2>{{ .Title }}</h2>
-        {{ if not .Date.IsZero }}
-        <p>Posted {{ .Date.Format "2 Jan 2006" }}</p>
+        {{ if not .PublishDate.IsZero }}
+        <p>{{ .PublishDate.Format "January 2, 2006" }}{{ if ne .PublishDate .Lastmod }} - last updated {{ .Lastmod.Format "January 2, 2006" }}{{ end }}</p>
         {{ end }}
     </header>
     {{ .Content }}
