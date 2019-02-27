@@ -21,24 +21,26 @@ To test how our web would look like we can just execute the `hugo` command from 
 If we try to see the `public/index.html` page we'll notice that it doesn't look good due to the absolute paths used in the static pages.  To properly see the pages we need to serve the pages, which can easily be done using `hugo`:
 
 ```
-$ hugo server
+$ make serve
+hugo server --config config-serve.toml
+
                    | EN
 +------------------+----+
   Pages            | 10
   Paginator pages  |  0
   Non-page files   |  0
-  Static files     | 37
+  Static files     | 36
   Processed images |  0
   Aliases          |  4
   Sitemaps         |  1
   Cleaned          |  0
 
-Total in 49 ms
-Watching for changes in /home/username/ember-csi-web/{content,data,static,themes}
-Watching for config changes in /home/username/ember-csi-web/config.toml
+Total in 77 ms
+Watching for changes in /home/geguileo/code/reuse-cinder-drivers/ember-csi-web/{content,data,static,themes}
+Watching for config changes in config-serve.toml
 Serving pages from memory
 Running in Fast Render Mode. For full rebuilds on change: hugo server --disableFastRender
-Web Server is available at //localhost:1313/ (bind address 127.0.0.1)
+Web Server is available at http://localhost:1313/ (bind address 127.0.0.1)
 Press Ctrl+C to stop
 ```
 
