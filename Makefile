@@ -4,6 +4,9 @@ MSG ?= $(shell git log --oneline --format=%B -n 1 HEAD)
 init:
 	git worktree add -B gh-pages public origin/gh-pages
 
+serve:
+	hugo server --config config-serve.toml
+
 generate: # Call with MSG='Add new post' to change the commit message used
 	git stash -a
 	rm -rf public/*

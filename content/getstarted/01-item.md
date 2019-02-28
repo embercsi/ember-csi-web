@@ -1,42 +1,71 @@
 +++
-description = "Setting Kubernetes to use CSI plugins is non trivial: Access Control of Kubelet, Kubernetes API, and CSI plugin services, and the manifests to properly deploy the controller and node CSI services are some of the required steps.  This guide presents an easy way to try Kubernetes with Ember CSI."
+description = "Setting Kubernetes to use CSI plugins is non trivial: Access Control of Kubelet, Kubernetes API, and CSI plugin services, and the manifests to properly deploy the controller and node CSI services are some of the required steps.  This guide presents an easy way to try Kubernetes with Ember CSI using CSI 1.0."
 thumbnail = "images/01-getstarted-thumb.jpg"
 image = "images/01-getstarted.jpg"
 title = "Kubernetes and Ember CSI"
-slug = "01-getting-started-k8s"
+slug = "getting-started-k8s"
 author = "Gorka Eguileor"
 draft = false
 hidesidebar = true
+publishDate=2018-08-02T19:05:52+02:00
+lastmod=2019-02-28T16:31:57+01:00
+weight = 1
 +++
-Many things need to be considered when deploying a CSI plugin in Kubernetes, making it a painful experience for many first time users.  To ease this first contact with Kubernetes and CSI, the Ember repository comes with a [Kubernetes example that automates the deployment of Kubernetes with Ember CSI](https://github.com/embercsi/ember-csi/tree/master/examples/kubernetes).
+Many things need to be considered when deploying a CSI plugin in Kubernetes, making it a painful experience for many first time users.  To ease this first contact with Kubernetes and CSI, the Ember repository comes with a [Kubernetes example that automates the deployment of Kubernetes with Ember CSI using CSI spec version 1.0](https://github.com/embercsi/ember-csi/tree/master/examples/k8s_v1.13-CSI_v1.0).
 
-This article covers how to run the demo to deploy a Kubernetes single master cluster on CentOS 7 with 2 additional nodes using [kubeadm](http://kubernetes.io/docs/admin/kubeadm/) and Ember-CSI as the storage provider with an LVM loopback device as the backend.
+This article covers how to run Ember-CSI as a CSI v1 plugin deployed in Kubernetes 1.13, to showcase all CSI functionality: volume creation and deletion, creating snapshots and volumes from them, topology, liveness probes, etc.
 
-Ember CSI plugin is set as the default storage class, running 1 service (`StatefulSet`) with the CSI plugin running as *Controller* to manage the provisioning on *node0*, and a service (`DaemonSet`) running the plugin as *Node* mode on each of the nodes to manage local attachments.
+We will deploy a scenario with a segregated infra node a 2 workload nodes, and we will have 2 different storage backends available in Kubernetes via Ember-CSI.
 
-Specific Kubernetes configuration changes are carried out by the demo's Ansible playbook, and won't be covered in this article.
+In order to support 2 different backends we'll need as many Ember-CSI plugins. One for an LVM iSCSI backend, and another for a Ceph RBD backend.  The CSI Controller side of the plugins will be run on the infra node, and the CSI Node parts will run on all the workload nodes.
+
+To illustrate the CSI topology feature, the LVM iSCSI backend is only accessible by workload *node0*, whereas the Ceph RBD backend is accessible from all workload nodes and is set as the default storage class.
+
+Specific Kubernetes configuration changes and necessary host setup, such as iSCSI initiator setup, are carried out by the demo's Ansible playbook, and won't be covered in this article.
 
 ### Requirements
 
-The automated script relies on Vagrant, libvirt, KVM, and Ansible for the creation and provisioning of the 3 VMs. So we'll need to have the required packages.
+This demo requires QEMU-KVM, libvirt, Vagrant, vagrant-libvirt and ansible installed in the system.
 
-In fedora these packages can be installed with:
+In Fedora:
 
 ```shell
-$ sudo dnf -y install qemu-kvm libvirt vagrant-libvirt ansible
+$ sudo dnf -y install qemu-kvm libvirt vagrant vagrant-libvirt ansible
 ```
 
+Then we have to make sure the libvirt daemon is up and running.
+
+In Fedora:
+
+```shell
+$ sudo systemctl start libvirtd
+```
 
 ### Configuration
 
-The demo doesn't require any configuration changes to run, and the `Vagranfile` defines 2 nodes and a master, each with 4GB and 2 cores.  Which can be changed using variables `NODES`, `MEMORY`, and `CPUS` in the file.
+The demo doesn’t require any configuration changes to run, and the `Vagranfile` defines 2 nodes and a master, each with 4GB and 2 cores. Which can be changed using variables `NODES`, `MEMORY`, and `CPUS` in the `Vagrantfile`.
 
+Refer to the [example's readme file](https://github.com/embercsi/ember-csi/blob/master/examples/k8s_v1.13-CSI_v1.0/README.md) and [Ember-CSI's documentation](http://docs.ember-csi.io/) for additional information on changin the configuration.
 
 ### Setup
 
-The demo supports local and remote libvirt, for those that use an external box to run their VMs.
+First we need to clone the project and go into the example's directory:
 
-To do a local setup of the demo we must run the `up.sh` script, be aware that this will take a while:
+```shell
+$ git clone https://github.com/embercsi/ember-csi.git
+Cloning into 'ember-csi'...
+warning: templates not found /home/geguileo/.git-templates
+remote: Enumerating objects: 107, done.
+remote: Counting objects: 100% (107/107), done.
+remote: Compressing objects: 100% (63/63), done.
+remote: Total 1177 (delta 56), reused 70 (delta 43), pack-reused 1070
+Receiving objects: 100% (1177/1177), 11.80 MiB | 7.86 MiB/s, done.
+Resolving deltas: 100% (699/699), done.
+
+$ cd ember-csi/examples/k8s_v1.13-CSI_v1.0
+```
+
+Then we just need to run the `up.sh` script to launch the VMs on our local system.  Be aware that this will take a while.
 
 ```shell
 $ ./up.sh
@@ -50,12 +79,14 @@ Bringing machine 'node1' up with 'libvirt' provider...
 [ . . . ]
 
 PLAY RECAP *********************************************************************
-master                     : ok=35   changed=31   unreachable=0    failed=0
-node0                      : ok=33   changed=27   unreachable=0    failed=0
-node1                      : ok=25   changed=23   unreachable=0    failed=0
+master                     : ok=64   changed=52   unreachable=0    failed=0
+node0                      : ok=22   changed=20   unreachable=0    failed=0
+node1                      : ok=22   changed=20   unreachable=0    failed=0
 ```
 
-Remote configuration requires defining our remote libvirt system using `LIBVIRT_HOST` and `LIBVIRT_USER` environmental variables before calling the `up.sh` script.  `LIBVIRT_USER` defaults to `root`, so we don't need to set it up if that's what we want to use:
+We may want to run the VMs on a remote system.  We can do this using the `LIBVIRT_HOST` and `LIBVIRT_USER` environmental variables before calling the `up.sh` script.
+
+`LIBVIRT_USER` defaults to `root`, so we don't need to set it up if that's what we want to use:
 
 ```shell
 $ export LIBVIRT_HOST=192.168.1.11
@@ -70,487 +101,780 @@ Bringing machine 'node1' up with 'libvirt' provider...
 [ . . . ]
 
 PLAY RECAP *********************************************************************
-master                     : ok=35   changed=31   unreachable=0    failed=0
-node0                      : ok=33   changed=27   unreachable=0    failed=0
-node1                      : ok=25   changed=23   unreachable=0    failed=0
+master                     : ok=64   changed=52   unreachable=0    failed=0
+node0                      : ok=22   changed=20   unreachable=0    failed=0
+node1                      : ok=22   changed=20   unreachable=0    failed=0
 ```
+
+
+### Development Setup
+
+If we are doing development, or if we want to test our own Ember-CSI images, we can use our own registry.  This would be the case if we have added a driver dependency,
+
+Here's an example of what we would do to test a 3PAR iSCSI backend, which has dependencies that are not currently included in any of the Ember-CSI images:
+
+First we would create our docker image, with a `Dockerfile` such as this:
+
+```shell
+FROM embercsi/ember-csi:master
+RUN pip install 'python-3parclient>=4.1.0'
+```
+
+Then we build and tag the image with our IP address:
+
+```shell
+# We need to know our IP address
+$ MY_IP=$(bash -c 'a="`hostname -I`"; s=($a); echo ${s[0]}')
+$ docker build -t $MY_IP/ember-csi:testing .
+```
+
+Now we run our own registry and publish our image:
+
+```shell
+$ docker run -d -p 5000:5000 --name registry registry:2
+$ docker push -t $MY_IP:5000/ember-csi:testing
+```
+
+Then, we edit file `roles/common/files/daemon.json` and replace the IP with our own, so that docker can pull images from our insecure registry, and change the images we want to use:
+
+```shell
+$ sed -i "s/192.168.1.11:5000/$MY_IP:5000/" roles/common/files/daemon.json
+$ sed -i "s/embercsi\/ember-csi:master/$MY_IP:5000\/ember-csi:testing/" kubeyml/node.yml
+$ sed -i "s/embercsi\/ember-csi:master/$MY_IP:5000\/ember-csi:testing/" kubeyml/controller.yml
+```
+
+With that, we are now ready to use our own custom image when deploying Ember-CSI in this example, but since we wanted to use the 3PAR backend we have to change the configuration editing `kubeyml/controller.yml` and changing the value of the environmental vairiable `X_CSI_BACKEND_CONFIG` with our backend's configuration.
+
 
 ### Usage
 
-During the setup the Kubernetes configuration is copied from the master VM to the host, so on completion we can use it locally as follows:
+After the setup is completed the Kubernetes configuration is copied from the master node to the host, so we can use it locally as follows:
 
 ```shell
 $ kubectl --kubeconfig=kubeconfig.conf get nodes
-master    Ready     master    21m       v1.11.1
-node0     Ready     <none>    21m       v1.11.1
-node1     Ready     <none>    21m       v1.11.1
+NAME     STATUS   ROLES    AGE   VERSION
+master   Ready    master   10m   v1.13.2
+node0    Ready    <none>   10m   v1.13.2
+node1    Ready    <none>   10m   v1.13.2
 ```
 
-If we don't have `kubectl` installed in our system we can SSH into the master and run commands from there:
+Or we can just SSH into the master and run commands in there:
 ```shell
 $ vagrant ssh master
 Last login: Tue Jul 24 10:12:40 2018 from 192.168.121.1
 [vagrant@master ~]$ kubectl get nodes
-NAME      STATUS    ROLES     AGE       VERSION
-master    Ready     master    21m       v1.11.1
-node0     Ready     <none>    21m       v1.11.1
-node1     Ready     <none>    21m       v1.11.1
+NAME     STATUS   ROLES    AGE   VERSION
+master   Ready    master   10m   v1.13.2
+node0    Ready    <none>   10m   v1.13.2
+node1    Ready    <none>   10m   v1.13.2
 ```
 
-Unless stated otherwise all the following commands are run assuming we are in the *master* node.
+Unless stated otherwise, all the following commands are run assuming we are in the *master* node.
 
-We can check that the CSI *controller* service is running:
+We can check that the CSI *controller* services are running in master and that they have been registered in Kubernetes as `CSIDrivers.csi.storage.k8s.io` objects:
 
 ```shell
-[vagrant@master ~]$ kubectl get pod csi-controller-0
-NAME               READY     STATUS    RESTARTS   AGE
-csi-controller-0   4/4       Running   0          22m
+[vagrant@master ~]$ kubectl get pod csi-controller-0 csi-rbd-0
+[vagrant@master ~]$ kubectl get pod csi-controller-0 csi-rbd-0
+NAME               READY   STATUS    RESTARTS   AGE
+csi-controller-0   6/6     Running   0          8m50s
+NAME               READY   STATUS    RESTARTS   AGE
+csi-rbd-0          7/7     Running   1          4m12s
+
+
+[vagrant@master ~]$ kubectl describe pod csi-controller-0 csi-rbd-0 |grep Node:
+Node:               master/192.168.10.90
+Node:               master/192.168.10.90
+
+
+[vagrant@master ~]$ kubectl get csidrivers
+NAME               AGE
+ember-csi.io       8m
+rbd.ember-csi.io   4m
 ```
 
-Check the logs of the CSI *controller*:
+Check the logs of the CSI *controller* to see that its running as expected:
 
 ```shell
 [vagrant@master ~]$ kubectl logs csi-controller-0 -c csi-driver
-Starting Ember CSI v0.0.2 in controller only mode (cinderlib: v0.2.2.dev0, cinder: v11.1.1, CSI spec: v0.2.0)
-Supported filesystems are: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
-Running as controller with backend LVMVolumeDriver v3.0.0
-Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
-Now serving on unix:///csi-data/csi.sock...
-=> 2018-07-24 10:14:28.981718 GRPC [126562384]: GetPluginInfo without params
-<= 2018-07-24 10:14:28.981747 GRPC in 0s [126562384]: GetPluginInfo returns
-        name: "io.ember-csi"
-        vendor_version: "0.0.2"
-        manifest {
-          key: "cinder-driver"
-          value: "LVMVolumeDriver"
-        }
-        manifest {
-          key: "cinder-driver-supported"
-          value: "True"
-        }
-        manifest {
-          key: "cinder-driver-version"
-          value: "3.0.0"
-        }
-        manifest {
-          key: "cinder-version"
-          value: "11.1.1"
-        }
-        manifest {
-          key: "cinderlib-version"
-          value: "0.2.2.dev0"
-        }
-        manifest {
-          key: "mode"
-          value: "controller"
-        }
-        manifest {
-          key: "persistence"
-          value: "CRDPersistence"
-        }
-=> 2018-07-24 10:14:28.984271 GRPC [126562624]: Probe without params
-<= 2018-07-24 10:14:28.984289 GRPC in 0s [126562624]: Probe returns nothing
-=> 2018-07-24 10:14:28.986625 GRPC [126562744]: GetPluginCapabilities without params
-<= 2018-07-24 10:14:28.986645 GRPC in 0s [126562744]: GetPluginCapabilities returns
-        capabilities {
-          service {
-            type: CONTROLLER_SERVICE
-          }
-        }
-=> 2018-07-24 10:14:28.988548 GRPC [126562864]: ControllerGetCapabilities without params
-<= 2018-07-24 10:14:28.988654 GRPC in 0s [126562864]: ControllerGetCapabilities returns
-        capabilities {
-          rpc {
-            type: CREATE_DELETE_VOLUME
-          }
-        }
-        capabilities {
-          rpc {
-            type: PUBLISH_UNPUBLISH_VOLUME
-          }
-        }
-        capabilities {
-          rpc {
-            type: LIST_VOLUMES
-          }
-        }
-        capabilities {
-          rpc {
-            type: GET_CAPACITY
-          }
-        }
+2019-02-14 14:17:03 INFO ember_csi.ember_csi [-] Ember CSI v0.0.2 with 30 workers (cinder: v1.0.0.dev16644, CSI spec: v1.0.0)
+2019-02-14 14:17:03 INFO ember_csi.ember_csi [-] Persistence module: CRDPersistence
+2019-02-14 14:17:03 INFO ember_csi.ember_csi [-] Running as controller with backend LVMVolumeDriver v3.0.0
+2019-02-14 14:17:03 INFO ember_csi.ember_csi [-] Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
+2019-02-14 14:17:03 INFO ember_csi.ember_csi [-] Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
+2019-02-14 14:17:03 INFO ember_csi.ember_csi [-] Now serving on unix:///csi-data/csi.sock...
+2019-02-14 14:17:03 INFO ember_csi.common [req-140148287040280] => GRPC GetPluginInfo
+2019-02-14 14:17:03 INFO ember_csi.common [req-140148287040280] <= GRPC GetPluginInfo served in 0s
+2019-02-14 14:17:03 INFO ember_csi.common [req-140148287039920] => GRPC Probe
+2019-02-14 14:17:03 INFO ember_csi.common [req-140148287039920] <= GRPC Probe served in 0s
+2019-02-14 14:17:03 INFO ember_csi.common [req-140148287040400] => GRPC ControllerGetCapabilities
+2019-02-14 14:17:03 INFO ember_csi.common [req-140148287040400] <= GRPC ControllerGetCapabilities served in 0s
+2019-02-14 14:17:04 INFO ember_csi.common [req-140148287040280] => GRPC GetPluginInfo
+2019-02-14 14:17:04 INFO ember_csi.common [req-140148287040280] <= GRPC GetPluginInfo served in 0s
+2019-02-14 14:17:04 INFO ember_csi.common [req-140148287039920] => GRPC Probe
+2019-02-14 14:17:04 INFO ember_csi.common [req-140148287039920] <= GRPC Probe served in 0s
+2019-02-14 14:17:04 INFO ember_csi.common [req-140148287040400] => GRPC GetPluginInfo
+2019-02-14 14:17:04 INFO ember_csi.common [req-140148287040400] <= GRPC GetPluginInfo served in 0s
+2019-02-14 14:17:04 INFO ember_csi.common [req-140148287040280] => GRPC GetPluginCapabilities
+2019-02-14 14:17:04 INFO ember_csi.common [req-140148287040280] <= GRPC GetPluginCapabilities served in 0s
+2019-02-14 14:17:04 INFO ember_csi.common [req-140148287039920] => GRPC ControllerGetCapabilities
+2019-02-14 14:17:04 INFO ember_csi.common [req-140148287039920] <= GRPC ControllerGetCapabilities served in 0s
+2019-02-14 14:19:49 INFO ember_csi.common [req-140148287040400] => GRPC Probe
+2019-02-14 14:19:49 INFO ember_csi.common [req-140148287040400] <= GRPC Probe served in 0s
+2019-02-14 14:21:19 INFO ember_csi.common [req-140148287040400] => GRPC Probe
+2019-02-14 14:21:19 INFO ember_csi.common [req-140148287040400] <= GRPC Probe served in 0s
+2019-02-14 14:22:49 INFO ember_csi.common [req-140148287033424] => GRPC Probe
+2019-02-14 14:22:49 INFO ember_csi.common [req-140148287033424] <= GRPC Probe served in 0s
+2019-02-14 14:24:19 INFO ember_csi.common [req-140148287034624] => GRPC Probe
+2019-02-14 14:24:19 INFO ember_csi.common [req-140148287034624] <= GRPC Probe served in 0s
+
+
+[vagrant@master ~]$ kubectl logs csi-rbd-0 -c csi-driver
+2019-02-14 14:21:15 INFO ember_csi.ember_csi [-] Ember CSI v0.0.2 with 30 workers (cinder: v1.0.0.dev16644, CSI spec: v1.0.0)
+2019-02-14 14:21:15 INFO ember_csi.ember_csi [-] Persistence module: CRDPersistence
+2019-02-14 14:21:15 INFO ember_csi.ember_csi [-] Running as controller with backend RBDDriver v1.2.0
+2019-02-14 14:21:15 INFO ember_csi.ember_csi [-] Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
+2019-02-14 14:21:15 INFO ember_csi.ember_csi [-] Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
+2019-02-14 14:21:15 INFO ember_csi.ember_csi [-] Now serving on unix:///csi-data/csi.sock...
+2019-02-14 14:21:16 INFO ember_csi.common [req-140121198625208] => GRPC GetPluginInfo
+2019-02-14 14:21:16 INFO ember_csi.common [req-140121198625208] <= GRPC GetPluginInfo served in 0s
+2019-02-14 14:21:16 INFO ember_csi.common [req-140121198624848] => GRPC GetPluginInfo
+2019-02-14 14:21:16 INFO ember_csi.common [req-140121198624848] <= GRPC GetPluginInfo served in 0s
+2019-02-14 14:21:16 INFO ember_csi.common [req-140121198625328] => GRPC Probe
+2019-02-14 14:21:16 INFO ember_csi.common [req-140121198625328] <= GRPC Probe served in 0s
+2019-02-14 14:21:16 INFO ember_csi.common [req-140121198625208] => GRPC ControllerGetCapabilities
+2019-02-14 14:21:16 INFO ember_csi.common [req-140121198625208] <= GRPC ControllerGetCapabilities served in 0s
+2019-02-14 14:21:16 INFO ember_csi.common [req-140121198624848] => GRPC Probe
+2019-02-14 14:21:16 INFO ember_csi.common [req-140121198624848] <= GRPC Probe served in 0s
+2019-02-14 14:21:16 INFO ember_csi.common [req-140121198625328] => GRPC GetPluginInfo
+2019-02-14 14:21:16 INFO ember_csi.common [req-140121198625328] <= GRPC GetPluginInfo served in 0s
+2019-02-14 14:21:16 INFO ember_csi.common [req-140121198625208] => GRPC GetPluginCapabilities
+2019-02-14 14:21:16 INFO ember_csi.common [req-140121198625208] <= GRPC GetPluginCapabilities served in 0s
+2019-02-14 14:21:16 INFO ember_csi.common [req-140121198624848] => GRPC ControllerGetCapabilities
+2019-02-14 14:21:16 INFO ember_csi.common [req-140121198624848] <= GRPC ControllerGetCapabilities served in 0s
+2019-02-14 14:24:11 INFO ember_csi.common [req-140121198625328] => GRPC Probe
+2019-02-14 14:24:11 INFO ember_csi.common [req-140121198625328] <= GRPC Probe served in 0s
+2019-02-14 14:25:41 INFO ember_csi.common [req-140121198625208] => GRPC Probe
+2019-02-14 14:25:41 INFO ember_csi.common [req-140121198625208] <= GRPC Probe served in 0s
 ```
 
 Check that the CSI *node* services are also running:
 
 ```shell
 [vagrant@master ~]$ kubectl get pod --selector=app=csi-node
-NAME             READY     STATUS    RESTARTS   AGE
-csi-node-29sls   3/3       Running   0          29m
-csi-node-p7r9r   3/3       Running   1          29m
+NAME               READY   STATUS    RESTARTS   AGE
+csi-node-0-jpdsg   3/3     Running   1          11m
+csi-node-qf4ld     3/3     Running   1          11m
+
+[vagrant@master ~]$ kubectl get pod --selector=app=csi-node-rbd
+NAME                 READY   STATUS    RESTARTS   AGE
+csi-node-rbd-k5dx5   3/3     Running   0          8m38s
+csi-node-rbd-mrxwc   3/3     Running   0          8m38s
 ```
 
-Check the CSI logs for both *node* services:
+We can also check all CSI drivers that have been registered in Kubernetes as `CSINodeInfo.csi.storage.k8s.io` objects and that both plugins have added their topology keys:
 
 ```shell
-[vagrant@master ~]$ kubectl logs csi-node-29sls -c csi-driver
-Starting Ember CSI v0.0.2 in node only mode (cinderlib: v0.2.2.dev0, cinder: v11.1.1, CSI spec: v0.2.0)
-Supported filesystems are: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
-Running as node
-Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
-Now serving on unix:///csi-data/csi.sock...
-=> 2018-07-24 10:14:04.339319 GRPC [123797944]: GetPluginInfo without params
-<= 2018-07-24 10:14:04.339360 GRPC in 0s [123797944]: GetPluginInfo returns
-        name: "io.ember-csi"
-        vendor_version: "0.0.2"
-        manifest {
-          key: "cinder-version"
-          value: "11.1.1"
-        }
-        manifest {
-          key: "cinderlib-version"
-          value: "0.2.2.dev0"
-        }
-        manifest {
-          key: "mode"
-          value: "node"
-        }
-        manifest {
-          key: "persistence"
-          value: "CRDPersistence"
-        }
-=> 2018-07-24 10:14:04.340763 GRPC [123797584]: NodeGetId without params
-<= 2018-07-24 10:14:04.340781 GRPC in 0s [123797584]: NodeGetId returns
-        node_id: "node1"
+[vagrant@master ~]$ kubectl get csinodeinfo
+NAME    AGE
+node0   13m
+node1   13m
 
 
-[vagrant@master ~]$ kubectl logs csi-node-p7r9r -c csi-driver
-Starting Ember CSI v0.0.2 in node only mode (cinderlib: v0.2.2.dev0, cinder: v11.1.1, CSI spec: v0.2.0)
-Supported filesystems are: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
-Running as node
-Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
-Now serving on unix:///csi-data/csi.sock...
-=> 2018-07-24 10:14:24.686979 GRPC [126448056]: GetPluginInfo without params
-<= 2018-07-24 10:14:24.687173 GRPC in 0s [126448056]: GetPluginInfo returns
-        name: "io.ember-csi"
-        vendor_version: "0.0.2"
-        manifest {
-          key: "cinder-version"
-          value: "11.1.1"
-        }
-        manifest {
-          key: "cinderlib-version"
-          value: "0.2.2.dev0"
-        }
-        manifest {
-          key: "mode"
-          value: "node"
-        }
-        manifest {
-          key: "persistence"
-          value: "CRDPersistence"
-        }
-=> 2018-07-24 10:14:24.691020 GRPC [126447696]: NodeGetId without params
-<= 2018-07-24 10:14:24.691048 GRPC in 0s [126447696]: NodeGetId returns
-        node_id: "node0"
-```
-
-Ember CSI plugin stores connection information in Kubernetes as CRDs when running as a *node* service. This information is used by the *controller* Ember service to map the volume to the host curing the connection of a volume to a container.  We can check what information is stored in Kubernetes checking `keyvalue`:
-
-
-```shell
-[vagrant@master ~]$ kubectl get keyvalue
-NAME      AGE
-node0     30m
-node1     30m
-
-[vagrant@master ~]$ kubectl describe kv
+vagrant@master ~]$ kubectl describe csinodeinfo
 Name:         node0
-Namespace:    default
+Namespace:
 Labels:       <none>
-Annotations:  value={"platform":"x86_64","host":"node0","do_local_attach":false,"ip":"192.168.10.100","os_type":"linux2","multipath":true,"initiator":"iqn.1994
--05.com.redhat:6cf4bf7fddc0"}                                                                                                                                  API Version:  ember-csi.io/v1
-Kind:         KeyValue
+Annotations:  <none>
+API Version:  csi.storage.k8s.io/v1alpha1
+Kind:         CSINodeInfo
 Metadata:
-  Creation Timestamp:  2018-07-24T10:14:16Z
-  Generation:          1
-  Resource Version:    760
-  Self Link:           /apis/ember-csi.io/v1/namespaces/default/keyvalues/node0
-  UID:                 525d03cf-8f2a-11e8-847c-525400059da0
-Events:                <none>
+  Creation Timestamp:  2019-02-14T14:18:47Z
+  Generation:          3
+  Owner References:
+    API Version:     v1
+    Kind:            Node
+    Name:            node0
+    UID:             b9cc0120-3062-11e9-b3b0-5254002dbb88
+  Resource Version:  1333
+  Self Link:         /apis/csi.storage.k8s.io/v1alpha1/csinodeinfos/node0
+  UID:               717b2f2e-3063-11e9-aed5-5254002dbb88
+Spec:
+  Drivers:
+    Name:     ember-csi.io
+    Node ID:  ember-csi.io.node0
+    Topology Keys:
+      iscsi
+    Name:     rbd.ember-csi.io
+    Node ID:  rbd.ember-csi.node0
+    Topology Keys:
+      rbd
+Status:
+  Drivers:
+    Available:                true
+    Name:                     ember-csi.io
+    Volume Plugin Mechanism:  in-tree
+    Available:                true
+    Name:                     rbd.ember-csi.io
+    Volume Plugin Mechanism:  in-tree
+Events:                       <none>
 
 
 Name:         node1
+Namespace:
+Labels:       <none>
+Annotations:  <none>
+API Version:  csi.storage.k8s.io/v1alpha1
+Kind:         CSINodeInfo
+Metadata:
+  Creation Timestamp:  2019-02-14T14:18:48Z
+  Generation:          3
+  Owner References:
+    API Version:     v1
+    Kind:            Node
+    Name:            node1
+    UID:             b9ead21f-3062-11e9-b3b0-5254002dbb88
+  Resource Version:  1336
+  Self Link:         /apis/csi.storage.k8s.io/v1alpha1/csinodeinfos/node1
+  UID:               71c5bc98-3063-11e9-aed5-5254002dbb88
+Spec:
+  Drivers:
+    Name:     ember-csi.io
+    Node ID:  node1.ember-csi.io
+    Topology Keys:
+      iscsi
+    Name:     rbd.ember-csi.io
+    Node ID:  rbd.ember-csi.io.node1
+    Topology Keys:
+      rbd
+Status:
+  Drivers:
+    Available:                true
+    Name:                     ember-csi.io
+    Volume Plugin Mechanism:  in-tree
+    Available:                true
+    Name:                     rbd.ember-csi.io
+    Volume Plugin Mechanism:  in-tree
+Events:                       <none>
+```
+
+Check the CSI *node* logs:
+
+```shell
+[vagrant@master ~]$ kubectl logs csi-node-0-jpdsg -c csi-driver
+2019-02-14 14:18:41 WARNING os_brick.initiator.connectors.nvme [-] Unable to locate dmidecode. For Cinder RSD Backend, please make sure it is installed: [Errno 2] No such file or directory
+Command: dmidecode
+Exit code: -
+Stdout: None
+Stderr: None: ProcessExecutionError: [Errno 2] No such file or directory
+2019-02-14 14:18:46 INFO ember_csi.ember_csi [-] Ember CSI v0.0.2 with 30 workers (cinder: v1.0.0.dev16644, CSI spec: v1.0.0)
+2019-02-14 14:18:46 INFO ember_csi.ember_csi [-] Persistence module: CRDPersistence
+2019-02-14 14:18:46 INFO ember_csi.ember_csi [-] Running as node
+2019-02-14 14:18:46 INFO ember_csi.ember_csi [-] Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
+2019-02-14 14:18:46 INFO ember_csi.ember_csi [-] Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
+2019-02-14 14:18:46 INFO ember_csi.ember_csi [-] Now serving on unix:///csi-data/csi.sock...
+2019-02-14 14:18:47 INFO ember_csi.common [req-139625352109064] => GRPC GetPluginInfo
+2019-02-14 14:18:47 INFO ember_csi.common [req-139625352109064] <= GRPC GetPluginInfo served in 0s
+2019-02-14 14:18:47 INFO ember_csi.common [req-139625352108584] => GRPC NodeGetInfo
+2019-02-14 14:18:47 INFO ember_csi.common [req-139625352108584] <= GRPC NodeGetInfo served in 0s
+2019-02-14 14:21:07 INFO ember_csi.common [req-139625352107984] => GRPC Probe
+2019-02-14 14:21:07 INFO ember_csi.common [req-139625352107984] <= GRPC Probe served in 0s
+
+
+[vagrant@master ~]$ kubectl logs csi-node-qf4ld -c csi-driver
+2019-02-14 14:18:42 WARNING os_brick.initiator.connectors.nvme [-] Unable to locate dmidecode. For Cinder RSD Backend, please make sure it is installed: [Errno 2] No such file or directory
+Command: dmidecode
+Exit code: -
+Stdout: None
+Stderr: None: ProcessExecutionError: [Errno 2] No such file or directory
+2019-02-14 14:18:46 INFO ember_csi.ember_csi [-] Ember CSI v0.0.2 with 30 workers (cinder: v1.0.0.dev16644, CSI spec: v1.0.0)
+2019-02-14 14:18:46 INFO ember_csi.ember_csi [-] Persistence module: CRDPersistence
+2019-02-14 14:18:46 INFO ember_csi.ember_csi [-] Running as node
+2019-02-14 14:18:46 INFO ember_csi.ember_csi [-] Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
+2019-02-14 14:18:46 INFO ember_csi.ember_csi [-] Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
+2019-02-14 14:18:46 INFO ember_csi.ember_csi [-] Now serving on unix:///csi-data/csi.sock...
+2019-02-14 14:18:48 INFO ember_csi.common [req-140458013056008] => GRPC GetPluginInfo
+2019-02-14 14:18:48 INFO ember_csi.common [req-140458013056008] <= GRPC GetPluginInfo served in 0s
+2019-02-14 14:18:48 INFO ember_csi.common [req-140458013055528] => GRPC NodeGetInfo
+2019-02-14 14:18:48 INFO ember_csi.common [req-140458013055528] <= GRPC NodeGetInfo served in 0s
+2019-02-14 14:22:05 INFO ember_csi.common [req-140458013054928] => GRPC Probe
+2019-02-14 14:22:05 INFO ember_csi.common [req-140458013054928] <= GRPC Probe served in 0s
+
+
+[vagrant@master ~]$ kubectl logs csi-node-rbd-k5dx5 -c csi-driver
+2019-02-14 14:20:45 WARNING os_brick.initiator.connectors.nvme [-] Unable to locate dmidecode. For Cinder RSD Backend, please make sure it is installed: [Errno 2] No such file or directory
+Command: dmidecode
+Exit code: -
+Stdout: None
+Stderr: None: ProcessExecutionError: [Errno 2] No such file or directory
+2019-02-14 14:20:45 INFO ember_csi.ember_csi [-] Ember CSI v0.0.2 with 30 workers (cinder: v1.0.0.dev16644, CSI spec: v1.0.0)
+2019-02-14 14:20:45 INFO ember_csi.ember_csi [-] Persistence module: CRDPersistence
+2019-02-14 14:20:45 INFO ember_csi.ember_csi [-] Running as node
+2019-02-14 14:20:45 INFO ember_csi.ember_csi [-] Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
+2019-02-14 14:20:45 INFO ember_csi.ember_csi [-] Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
+2019-02-14 14:20:45 INFO ember_csi.ember_csi [-] Now serving on unix:///csi-data/csi.sock...
+2019-02-14 14:20:45 INFO ember_csi.common [req-140165654412296] => GRPC GetPluginInfo
+2019-02-14 14:20:45 INFO ember_csi.common [req-140165654412296] <= GRPC GetPluginInfo served in 0s
+2019-02-14 14:20:45 INFO ember_csi.common [req-140165654411816] => GRPC NodeGetInfo
+2019-02-14 14:20:45 INFO ember_csi.common [req-140165654411816] <= GRPC NodeGetInfo served in 0s
+2019-02-14 14:23:25 INFO ember_csi.common [req-140165654411216] => GRPC Probe
+2019-02-14 14:23:25 INFO ember_csi.common [req-140165654411216] <= GRPC Probe served in 0s
+
+
+[vagrant@master ~]$ kubectl logs csi-node-rbd-mrxwc -c csi-driver
+2019-02-14 14:20:46 WARNING os_brick.initiator.connectors.nvme [-] Unable to locate dmidecode. For Cinder RSD Backend, please make sure it is installed: [Errno 2] No such file or directory
+Command: dmidecode
+Exit code: -
+Stdout: None
+Stderr: None: ProcessExecutionError: [Errno 2] No such file or directory
+2019-02-14 14:20:46 INFO ember_csi.ember_csi [-] Ember CSI v0.0.2 with 30 workers (cinder: v1.0.0.dev16644, CSI spec: v1.0.0)
+2019-02-14 14:20:46 INFO ember_csi.ember_csi [-] Persistence module: CRDPersistence
+2019-02-14 14:20:46 INFO ember_csi.ember_csi [-] Running as node
+2019-02-14 14:20:46 INFO ember_csi.ember_csi [-] Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
+2019-02-14 14:20:46 INFO ember_csi.ember_csi [-] Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
+2019-02-14 14:20:46 INFO ember_csi.ember_csi [-] Now serving on unix:///csi-data/csi.sock...
+2019-02-14 14:20:47 INFO ember_csi.common [req-140135792684040] => GRPC GetPluginInfo
+2019-02-14 14:20:47 INFO ember_csi.common [req-140135792684040] <= GRPC GetPluginInfo served in 0s
+2019-02-14 14:20:47 INFO ember_csi.common [req-140135792683560] => GRPC NodeGetInfo
+2019-02-14 14:20:47 INFO ember_csi.common [req-140135792683560] <= GRPC NodeGetInfo served in 0s
+2019-02-14 14:22:48 INFO ember_csi.common [req-140135792682960] => GRPC Probe
+2019-02-14 14:22:48 INFO ember_csi.common [req-140135792682960] <= GRPC Probe served in 0s
+```
+
+
+Check the connection information that the Ember-CSI *node* services are storing in Kubernetes CRD objects to be used by the *controller* to export and map volumes to them:
+
+```shell
+[vagrant@master ~]$ kubectl get keyvalue
+NAME                     AGE
+ember-csi.io.node0       20m
+ember-csi.io.node1       20m
+rbd.ember-csi.io.node0   18m
+rbd.ember-csi.io.node1   18m
+
+
+[vagrant@master ~]$ kubectl describe keyvalue
+Name:         ember-csi.io.node0
 Namespace:    default
 Labels:       <none>
-Annotations:  value={"platform":"x86_64","host":"node1","do_local_attach":false,"ip":"192.168.10.101","os_type":"linux2","multipath":true,"initiator":"iqn.1994
--05.com.redhat:1ad738f0b4e"}                                                                                                                                   API Version:  ember-csi.io/v1
+Annotations:  value:
+                {"platform":"x86_64","host":"node0","do_local_attach":false,"ip":"192.168.10.100","os_type":"linux2","multipath":false,"initiator":"iqn.19...
+API Version:  ember-csi.io/v1
 Kind:         KeyValue
 Metadata:
-  Creation Timestamp:  2018-07-24T10:14:03Z
+  Creation Timestamp:  2019-02-14T14:18:45Z
   Generation:          1
-  Resource Version:    735
-  Self Link:           /apis/ember-csi.io/v1/namespaces/default/keyvalues/node1
-  UID:                 4a4481dc-8f2a-11e8-847c-525400059da0
+  Resource Version:    1064
+  Self Link:           /apis/ember-csi.io/v1/namespaces/default/keyvalues/ember-csi.io.node0
+  UID:                 70332e8d-3063-11e9-aed5-5254002dbb88
+Events:                <none>
+
+
+Name:         ember-csi.io.node1
+Namespace:    default
+Labels:       <none>
+Annotations:  value:
+                {"platform":"x86_64","host":"node1","do_local_attach":false,"ip":"192.168.10.101","os_type":"linux2","multipath":false,"initiator":"iqn.19...
+API Version:  ember-csi.io/v1
+Kind:         KeyValue
+Metadata:
+  Creation Timestamp:  2019-02-14T14:18:45Z
+  Generation:          1
+  Resource Version:    1065
+  Self Link:           /apis/ember-csi.io/v1/namespaces/default/keyvalues/ember-csi.io.node1
+  UID:                 7033259c-3063-11e9-aed5-5254002dbb88
+Events:                <none>
+
+
+Name:         ember-csi.io.rbd.node0
+Namespace:    default
+Labels:       <none>
+Annotations:  value:
+                {"platform":"x86_64","host":"node0","do_local_attach":false,"ip":"192.168.10.100","os_type":"linux2","multipath":false,"initiator":"iqn.19...
+API Version:  ember-csi.io/v1
+Kind:         KeyValue
+Metadata:
+  Creation Timestamp:  2019-02-14T14:20:45Z
+  Generation:          1
+  Resource Version:    1330
+  Self Link:           /apis/ember-csi.io/v1/namespaces/default/keyvalues/rbd.ember-csi.io.node0
+  UID:                 b7ef3ad5-3063-11e9-aed5-5254002dbb88
+Events:                <none>
+
+
+Name:         rbd.ember-csi.io.node1
+Namespace:    default
+Labels:       <none>
+Annotations:  value:
+                {"platform":"x86_64","host":"node1","do_local_attach":false,"ip":"192.168.10.101","os_type":"linux2","multipath":false,"initiator":"iqn.19...
+API Version:  ember-csi.io/v1
+Kind:         KeyValue
+Metadata:
+  Creation Timestamp:  2019-02-14T14:20:46Z
+  Generation:          1
+  Resource Version:    1334
+  Self Link:           /apis/ember-csi.io/v1/namespaces/default/keyvalues/rbd.ember-csi.io.node1
+  UID:                 b8517e9f-3063-11e9-aed5-5254002dbb88
 Events:                <none>
 ```
 
-Now we can create a 1GB volume using provided PVC manifest:
+Create a 1GB volume on the LVM backend using provided PVC manifest:
 
 ```shell
-[vagrant@master ~]$ kubectl create -f kubeyml/pvc.yml
+[vagrant@master ~]$ kubectl create -f kubeyml/lvm/05-pvc.yml
 persistentvolumeclaim/csi-pvc created
 ```
 
-The volume creation will not only result in a new Kubernetes PVC, but also in a new Ember `volume` CRD with the volume's metadata. We now can check the PVC and the CRD:
+Check the PVC an PVs in Kubernetes, and see that the PV has Node Affinity based on the topology indicating it needs to be in a node with iSCSI (not *node0*):
 
 ```shell
 [vagrant@master ~]$ kubectl get pvc
-NAME      STATUS    VOLUME                 CAPACITY   ACCESS MODES   STORAGECLASS   AGE
-csi-pvc   Pending                                                    csi-sc         1s
+NAME      STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+csi-pvc   Bound    pvc-7db8685b-3066-11e9-aed5-5254002dbb88   1Gi        RWO            csi-sc         9s
 
 
-[vagrant@master ~]$ kubectl get pvc
-NAME      STATUS    VOLUME                 CAPACITY   ACCESS MODES   STORAGECLASS   AGE
-csi-pvc   Bound     pvc-c24d470e8f2e11e8   1Gi        RWO            csi-sc         25s
+[vagrant@master ~]$ kubectl get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM             STORAGECLASS   REASON   AGE
+pvc-7db8685b-3066-11e9-aed5-5254002dbb88   1Gi        RWO            Delete           Bound    default/csi-pvc   csi-sc                  14s
 
 
-[vagrant@master ~]$ kubectl get vol
-NAME                                   AGE
-4c1b19f4-7336-4d97-b4ab-5ea70efd39d5   1m
-
-
-[vagrant@master ~]$ kubectl describe vol
-Name:         4c1b19f4-7336-4d97-b4ab-5ea70efd39d5
-Namespace:    default
-Labels:       backend_name=lvm
-              volume_id=4c1b19f4-7336-4d97-b4ab-5ea70efd39d5
-              volume_name=pvc-c24d470e8f2e11e8
-Annotations:  json={"ovo":{"versioned_object.version":"1.6","versioned_object.name":"Volume","versioned_object.data":{"migration_status":null,"provider_id":null,"availability_zone":"lvm","terminated_at":null,"updat...
-API Version:  ember-csi.io/v1
-Kind:         Volume
-Metadata:
-  Creation Timestamp:  2018-07-24T10:46:02Z
-  Generation:          1
-  Resource Version:    3459
-  Self Link:           /apis/ember-csi.io/v1/namespaces/default/volumes/4c1b19f4-7336-4d97-b4ab-5ea70efd39d5
-  UID:                 c2791ec8-8f2e-11e8-847c-525400059da0
+[vagrant@master ~]$ kubectl describe pv
+Name:              pvc-7db8685b-3066-11e9-aed5-5254002dbb88
+Labels:            <none>
+Annotations:       pv.kubernetes.io/provisioned-by: ember-csi.io
+Finalizers:        [kubernetes.io/pv-protection]
+StorageClass:      csi-sc
+Status:            Bound
+Claim:             default/csi-pvc
+Reclaim Policy:    Delete
+Access Modes:      RWO
+VolumeMode:        Filesystem
+Capacity:          1Gi
+Node Affinity:
+  Required Terms:
+    Term 0:        iscsi in [true]
+Message:
+Source:
+    Type:              CSI (a Container Storage Interface (CSI) volume source)
+    Driver:            ember-csi.io
+    VolumeHandle:      540c5a37-ce98-4b47-83f7-10c54a4777b9
+    ReadOnly:          false
+    VolumeAttributes:      storage.kubernetes.io/csiProvisionerIdentity=1550153767135-8081-ember-csi.io
 Events:                <none>
 ```
 
-Each one of the CSI plugin services is running the `akrog/csc` container with the service's CSI configuration, allowing us to easily send commands directly to that specific CSI plugin using the [Container Storage Client](https://github.com/rexray/gocsi/tree/master/csc).
+We can also check Ember-CSI metadata for the volume stored in Kubernetes using CRDs:
 
-For example, we can request the CSI *controller* plugin to list volumes with:
+```shell
+[vagrant@master ~]$ kubectl get vol
+NAME                                   AGE
+540c5a37-ce98-4b47-83f7-10c54a4777b9   20s
+
+
+[vagrant@master ~]$ kubectl describe vol
+Name:         540c5a37-ce98-4b47-83f7-10c54a4777b9
+Namespace:    default
+Labels:       backend_name=lvm
+              volume_id=540c5a37-ce98-4b47-83f7-10c54a4777b9
+              volume_name=pvc-7db8685b-3066-11e9-aed5-5254002dbb88
+Annotations:  json:
+                {"ovo":{"versioned_object.version":"1.8","versioned_object.name":"Volume","versioned_object.data":{"migration_status":null,"provider_id":n...
+API Version:  ember-csi.io/v1
+Kind:         Volume
+Metadata:
+  Creation Timestamp:  2019-02-14T14:40:37Z
+  Generation:          1
+  Resource Version:    3012
+  Self Link:           /apis/ember-csi.io/v1/namespaces/default/volumes/540c5a37-ce98-4b47-83f7-10c54a4777b9
+  UID:                 7e07ab73-3066-11e9-aed5-5254002dbb88
+Events:                <none>
+```
+
+Each one of the CSI pods is running the `embercsi/csc` container, allowing us to easily send CSI commands directly to the Ember-CSI service running in a pod using the [Container Storage Client](https://github.com/rexray/gocsi/tree/master/csc).
+
+For example, we can request the LVM CSI *controller* plugin to list volumes with:
 
 ```shell
 [vagrant@master ~]$ kubectl exec -c csc csi-controller-0 csc controller list-volumes
-"4c1b19f4-7336-4d97-b4ab-5ea70efd39d5"  1073741824
+"540c5a37-ce98-4b47-83f7-10c54a4777b9"  1073741824
 ```
 
-Now we are going to create a container on *node1*, where neither the CSI *controller* nor the LVM reside, using the `app.yml` manifest that mounts the EXT4 PVC we just created into the `/data` directory:
+Now we are going to create a pod/container that uses the PV/PVC we created earlier, and since this PV is restricted to a node with the topology `iscsi=true` then it cannot go to *node0*, so it will land on *node1*.  We do this using the `06-app.yml` manifest that mounts the EXT4 PVC we just created into the `/data` directory:
 
 ```shell
-[vagrant@master ~]$ kubectl create -f kubeyml/app.yml
+[vagrant@master ~]$ kubectl create -f kubeyml/lvm/06-app.yml
 pod/my-csi-app created
 
 ```
 
-This process will take some time, as it needs to create the volume, attach it, format it, and mount it.  We can start tailing the CSI *controller* plugin logs to see that the plugin exports the volume:
+Tail the CSI *controller* plugin logs to see that the plugin exports the volume:
 
 ```shell
 [vagrant@master ~]$ kubectl logs csi-controller-0 -fc csi-driver
-Starting Ember CSI v0.0.2 in controller only mode (cinderlib: v0.2.2.dev0, cinder: v11.1.1, CSI spec: v0.2.0)
+2019-02-14 14:17:03 INFO ember_csi.ember_csi [-] Ember CSI v0.0.2 with 30 workers (cinder: v1.0.0.dev16644, CSI spec: v1.0.0)
+
 
 [ . . .]
 
-=> 2018-07-24 10:54:50.036959 GRPC [126565024]: ControllerPublishVolume with params
-        volume_id: "4c1b19f4-7336-4d97-b4ab-5ea70efd39d5"
-        node_id: "node1"
-        volume_capability {
-          mount {
-            fs_type: "ext4"
-          }
-          access_mode {
-            mode: SINGLE_NODE_WRITER
-          }
-        }
-        volume_attributes {
-          key: "storage.kubernetes.io/csiProvisionerIdentity"
-          value: "1532427201926-8081-io.ember-csi"
-        }
-<= 2018-07-24 10:54:51.735242 GRPC in 2s [126565024]: ControllerPublishVolume returns
-        publish_info {
-          key: "connection_info"
-          value: "{\"connector\": {\"initiator\": \"iqn.1994-05.com.redhat:1ad738f0b4e\", \"ip\": \"192.168.10.101\", \"platform\": \"x86_64\", \"host\": \"node1\", \"do_local_attach\": false, \"os_type\": \"linux2\", \"multipath\": true}, \"conn\": {\"driver_volume_type\": \"iscsi\", \"data\": {\"target_luns\": [0], \"target_iqns\": [\"iqn.2010-10.org.openstack:volume-4c1b19f4-7336-4d97-b4ab-5ea70efd39d5\"], \"target_discovered\": false, \"encrypted\": false, \"target_iqn\": \"iqn.2010-10.org.openstack:volume-4c1b19f4-7336-4d97-b4ab-5ea70efd39d5\", \"target_portal\": \"192.168.10.100:3260\", \"volume_id\": \"4c1b19f4-7336-4d97-b4ab-5ea70efd39d5\", \"target_lun\": 0, \"auth_password\": \"xtZUGSxeoH7uQ34z\", \"auth_username\": \"DcL6r8st8MLzuVBapWhZ\", \"auth_method\": \"CHAP\", \"target_portals\": [\"192.168.10.100:3260\"]}}}"
-        }
+2019-02-14 14:52:49 INFO ember_csi.common [req-140148287036904] => GRPC Probe
+2019-02-14 14:52:49 INFO ember_csi.common [req-140148287036904] <= GRPC Probe served in 0s
+2019-02-14 14:53:29 INFO ember_csi.common [req-140148287037024] => GRPC ControllerPublishVolume 540c5a37-ce98-4b47-83f7-10c54a4777b9
+2019-02-14 14:53:31 INFO ember_csi.common [req-140148287037024] <= GRPC ControllerPublishVolume served in 2s
 ^C
 ```
 
-Then, once we see that the `ControllerPublishVolume` call has completed we go and tail the CSI *node* plugin logs to see that the plugin attaches the volume to the container:
+Tail the CSI *node* plugin logs to see that the plugin actually attaches the volume to the container:
 
 ```shell
-[vagrant@master ~]$ kubectl logs csi-node-29sls -c csi-driver
-Starting Ember CSI v0.0.2 in node only mode (cinderlib: v0.2.2.dev0, cinder: v11.1.1, CSI spec: v0.2.0)
+[vagrant@master ~]$ kubectl logs csi-node-qf4ld -fc csi-driver
+2019-02-14 14:18:46 INFO ember_csi.ember_csi [-] Ember CSI v0.0.2 with 30 workers (cinder: v1.0.0.dev16644, CSI spec: v1.0.0)
 
 [ . . . ]
 
-=> 2018-07-24 10:54:53.780587 GRPC [123798064]: NodeGetCapabilities without params
-<= 2018-07-24 10:54:53.781102 GRPC in 0s [123798064]: NodeGetCapabilities returns
-        capabilities {
-          rpc {
-            type: STAGE_UNSTAGE_VOLUME
-          }
-        }
-=> 2018-07-24 10:54:53.784211 GRPC [123797944]: NodeStageVolume with params
-        volume_id: "4c1b19f4-7336-4d97-b4ab-5ea70efd39d5"
-        publish_info {
-          key: "connection_info"
-          value: "{\"connector\": {\"initiator\": \"iqn.1994-05.com.redhat:1ad738f0b4e\", \"ip\": \"192.168.10.101\", \"platform\": \"x86_64\", \"host\": \"node1\", \"do_local_attach\": false, \"os_type\": \"linux2\", \"multipath\": true}, \"conn\": {\"driver_volume_type\": \"iscsi\", \"data\": {\"target_luns\": [0], \"target_iqns\": [\"iqn.2010-10.org.openstack:volume-4c1b19f4-7336-4d97-b4ab-5ea70efd39d5\"], \"target_discovered\": false, \"encrypted\": false, \"target_iqn\": \"iqn.2010-10.org.openstack:volume-4c1b19f4-7336-4d97-b4ab-5ea70efd39d5\", \"target_portal\": \"192.168.10.100:3260\", \"volume_id\": \"4c1b19f4-7336-4d97-b4ab-5ea70efd39d5\", \"target_lun\": 0, \"auth_password\": \"xtZUGSxeoH7uQ34z\", \"auth_username\": \"DcL6r8st8MLzuVBapWhZ\", \"auth_method\": \"CHAP\", \"target_portals\": [\"192.168.10.100:3260\"]}}}"
-        }
-        staging_target_path: "/var/lib/kubelet/plugins/kubernetes.io/csi/pv/pvc-c24d470e8f2e11e8/globalmount"
-        volume_capability {
-          mount {
-          }
-          access_mode {
-            mode: SINGLE_NODE_WRITER
-          }
-        }
-        volume_attributes {
-          key: "storage.kubernetes.io/csiProvisionerIdentity"
-          value: "1532427201926-8081-io.ember-csi"
-        }
-=> 2018-07-24 10:55:09.380330 GRPC [123799384]: NodeGetCapabilities without params
-<= 2018-07-24 10:55:09.380891 GRPC in 0s [123799384]: NodeGetCapabilities returns
-        capabilities {
-          rpc {
-            type: STAGE_UNSTAGE_VOLUME
-          }
-        }
-=> 2018-07-24 10:55:09.383998 GRPC [123798784]: NodeStageVolume with params
-        volume_id: "4c1b19f4-7336-4d97-b4ab-5ea70efd39d5"
-        publish_info {
-          key: "connection_info"
-          value: "{\"connector\": {\"initiator\": \"iqn.1994-05.com.redhat:1ad738f0b4e\", \"ip\": \"192.168.10.101\", \"platform\": \"x86_64\", \"host\": \"node1\", \"do_local_attach\": false, \"os_type\": \"linux2\", \"multipath\": true}, \"conn\": {\"driver_volume_type\": \"iscsi\", \"data\": {\"target_luns\": [0], \"target_iqns\": [\"iqn.2010-10.org.openstack:volume-4c1b19f4-7336-4d97-b4ab-5ea70efd39d5\"], \"target_discovered\": false, \"encrypted\": false, \"target_iqn\": \"iqn.2010-10.org.openstack:volume-4c1b19f4-7336-4d97-b4ab-5ea70efd39d5\", \"target_portal\": \"192.168.10.100:3260\", \"volume_id\": \"4c1b19f4-7336-4d97-b4ab-5ea70efd39d5\", \"target_lun\": 0, \"auth_password\": \"xtZUGSxeoH7uQ34z\", \"auth_username\": \"DcL6r8st8MLzuVBapWhZ\", \"auth_method\": \"CHAP\", \"target_portals\": [\"192.168.10.100:3260\"]}}}"
-        }
-        staging_target_path: "/var/lib/kubelet/plugins/kubernetes.io/csi/pv/pvc-c24d470e8f2e11e8/globalmount"
-        volume_capability {
-          mount {
-          }
-          access_mode {
-            mode: SINGLE_NODE_WRITER
-          }
-        }
-        volume_attributes {
-          key: "storage.kubernetes.io/csiProvisionerIdentity"
-          value: "1532427201926-8081-io.ember-csi"
-        }
-Retrying to get a multipathRetrying to get a multipath=> 2018-07-24 10:55:25.546019 GRPC [124162248]: NodeGetCapabilities without params
-<= 2018-07-24 10:55:25.546121 GRPC in 0s [124162248]: NodeGetCapabilities returns
-        capabilities {
-          rpc {
-            type: STAGE_UNSTAGE_VOLUME
-          }
-        }
-=> 2018-07-24 10:55:25.557262 GRPC [123800704]: NodeStageVolume with params
-        volume_id: "4c1b19f4-7336-4d97-b4ab-5ea70efd39d5"
-        publish_info {
-          key: "connection_info"
-          value: "{\"connector\": {\"initiator\": \"iqn.1994-05.com.redhat:1ad738f0b4e\", \"ip\": \"192.168.10.101\", \"platform\": \"x86_64\", \"host\": \"node1\", \"do_local_attach\": false, \"os_type\": \"linux2\", \"multipath\": true}, \"conn\": {\"driver_volume_type\": \"iscsi\", \"data\": {\"target_luns\": [0], \"target_iqns\": [\"iqn.2010-10.org.openstack:volume-4c1b19f4-7336-4d97-b4ab-5ea70efd39d5\"], \"target_discovered\": false, \"encrypted\": false, \"target_iqn\": \"iqn.2010-10.org.openstack:volume-4c1b19f4-7336-4d97-b4ab-5ea70efd39d5\", \"target_portal\": \"192.168.10.100:3260\", \"volume_id\": \"4c1b19f4-7336-4d97-b4ab-5ea70efd39d5\", \"target_lun\": 0, \"auth_password\": \"xtZUGSxeoH7uQ34z\", \"auth_username\": \"DcL6r8st8MLzuVBapWhZ\", \"auth_method\": \"CHAP\", \"target_portals\": [\"192.168.10.100:3260\"]}}}"
-        }
-        staging_target_path: "/var/lib/kubelet/plugins/kubernetes.io/csi/pv/pvc-c24d470e8f2e11e8/globalmount"
-        volume_capability {
-          mount {
-          }
-          access_mode {
-            mode: SINGLE_NODE_WRITER
-          }
-        }
-        volume_attributes {
-          key: "storage.kubernetes.io/csiProvisionerIdentity"
-          value: "1532427201926-8081-io.ember-csi"
-        }
-Retrying to get a multipath<= 2018-07-24 10:55:34.895940 GRPC in 41s [123797944]: NodeStageVolume returns nothing
-<= 2018-07-24 10:55:34.900178 GRPC in 26s [123798784]: NodeStageVolume returns nothing
-<= 2018-07-24 10:55:34.903827 GRPC in 9s [123800704]: NodeStageVolume returns nothing
-=> 2018-07-24 10:55:34.905635 GRPC [123801424]: NodeGetCapabilities without params
-<= 2018-07-24 10:55:34.905701 GRPC in 0s [123801424]: NodeGetCapabilities returns
-        capabilities {
-          rpc {
-            type: STAGE_UNSTAGE_VOLUME
-          }
-        }
-=> 2018-07-24 10:55:34.909208 GRPC [123800944]: NodePublishVolume with params
-        volume_id: "4c1b19f4-7336-4d97-b4ab-5ea70efd39d5"
-        publish_info {
-          key: "connection_info"
-          value: "{\"connector\": {\"initiator\": \"iqn.1994-05.com.redhat:1ad738f0b4e\", \"ip\": \"192.168.10.101\", \"platform\": \"x86_64\", \"host\": \"node1\", \"do_local_attach\": false, \"os_type\": \"linux2\", \"multipath\": true}, \"conn\": {\"driver_volume_type\": \"iscsi\", \"data\": {\"target_luns\": [0], \"target_iqns\": [\"iqn.2010-10.org.openstack:volume-4c1b19f4-7336-4d97-b4ab-5ea70efd39d5\"], \"target_discovered\": false, \"encrypted\": false, \"target_iqn\": \"iqn.2010-10.org.openstack:volume-4c1b19f4-7336-4d97-b4ab-5ea70efd39d5\", \"target_portal\": \"192.168.10.100:3260\", \"volume_id\": \"4c1b19f4-7336-4d97-b4ab-5ea70efd39d5\", \"target_lun\": 0, \"auth_password\": \"xtZUGSxeoH7uQ34z\", \"auth_username\": \"DcL6r8st8MLzuVBapWhZ\", \"auth_method\": \"CHAP\", \"target_portals\": [\"192.168.10.100:3260\"]}}}"
-        }
-        staging_target_path: "/var/lib/kubelet/plugins/kubernetes.io/csi/pv/pvc-c24d470e8f2e11e8/globalmount"
-        target_path: "/var/lib/kubelet/pods/fca47cf0-8f2f-11e8-847c-525400059da0/volumes/kubernetes.io~csi/pvc-c24d470e8f2e11e8/mount"
-        volume_capability {
-          mount {
-          }
-          access_mode {
-            mode: SINGLE_NODE_WRITER
-          }
-        }
-        volume_attributes {
-          key: "storage.kubernetes.io/csiProvisionerIdentity"
-          value: "1532427201926-8081-io.ember-csi"
-        }
-<= 2018-07-24 10:55:34.995042 GRPC in 0s [123800944]: NodePublishVolume returns nothing
+2019-02-14 14:53:44 INFO ember_csi.common [req-140458012850128] => GRPC Probe
+2019-02-14 14:53:44 INFO ember_csi.common [req-140458012850128] <= GRPC Probe served in 0s
+2019-02-14 14:53:45 INFO ember_csi.common [req-140458012850248] => GRPC NodeGetCapabilities
+2019-02-14 14:53:45 INFO ember_csi.common [req-140458012850248] <= GRPC NodeGetCapabilities served in 0s
+2019-02-14 14:53:45 INFO ember_csi.common [req-140458012850368] => GRPC NodeStageVolume 540c5a37-ce98-4b47-83f7-10c54a4777b9
+2019-02-14 14:53:47 WARNING os_brick.initiator.connectors.iscsi [req-140458012850368] iscsiadm stderr output when getting sessions: iscsiadm: No active sessions.
+
+2019-02-14 14:53:50 INFO ember_csi.common [req-140458012850368] <= GRPC NodeStageVolume served in 5s
+2019-02-14 14:53:50 INFO ember_csi.common [req-140458012850488] => GRPC NodeGetCapabilities
+2019-02-14 14:53:50 INFO ember_csi.common [req-140458012850488] <= GRPC NodeGetCapabilities served in 0s
+2019-02-14 14:53:50 INFO ember_csi.common [req-140458012850248] => GRPC NodePublishVolume 540c5a37-ce98-4b47-83f7-10c54a4777b9
+2019-02-14 14:53:50 INFO ember_csi.common [req-140458012850248] <= GRPC NodePublishVolume served in 0s
+2019-02-14 14:55:05 INFO ember_csi.common [req-140458012850608] => GRPC Probe
+2019-02-14 14:55:05 INFO ember_csi.common [req-140458012850608] <= GRPC Probe served in 0s
 ^C
 ```
 
-Now that the volume has been attached to the container we can check that the pod has been successfully created:
+Check that the pod has been successfully created and that we have the Kubernetes `VolumeAttachment` object:
 
 ```shell
 [vagrant@master ~]$ kubectl get pod my-csi-app
-NAME         READY     STATUS    RESTARTS   AGE
-my-csi-app   1/1       Running   0          7m
+NAME         READY   STATUS    RESTARTS   AGE
+my-csi-app   1/1     Running   0          3m16s
+
+[vagrant@master ~]$ kubectl get VolumeAttachment
+NAME                                                                   CREATED AT
+csi-ce6d09a1af97cc903bd51ef4ab34acdf6b4d5c29b763d490de4953552c9e1055   2019-02-14T14:53:29Z
 ```
 
-When a volume is attached to a container the Ember plugin create a `connection` CRD that we can check:
+We can check the Ember-CSI connection metadata stored on Kubernetes as CRD objects:
 
 ```shell
 [vagrant@master ~]$ kubectl get conn
 NAME                                   AGE
-b58dceb8-e793-4b11-b5a5-aaf1ca56d9e2   7m
+63394bf4-9153-4c9c-9e76-aa73d5b80b48   5m
 
 
 [vagrant@master ~]$ kubectl describe conn
-Name:         b58dceb8-e793-4b11-b5a5-aaf1ca56d9e2
+Name:         63394bf4-9153-4c9c-9e76-aa73d5b80b48
 Namespace:    default
-Labels:       connection_id=b58dceb8-e793-4b11-b5a5-aaf1ca56d9e2
-              volume_id=4c1b19f4-7336-4d97-b4ab-5ea70efd39d5
-Annotations:  json={"ovo":{"versioned_object.version":"1.2","versioned_object.name":"VolumeAttachment","versioned_object.data":{"instance_uuid":null,"detach_time":null,"attach_time":null,"connection_info":{"connect...
+Labels:       connection_id=63394bf4-9153-4c9c-9e76-aa73d5b80b48
+              volume_id=540c5a37-ce98-4b47-83f7-10c54a4777b9
+Annotations:  json:
+                {"ovo":{"versioned_object.version":"1.3","versioned_object.name":"VolumeAttachment","versioned_object.data":{"instance_uuid":null,"detach_...
 API Version:  ember-csi.io/v1
 Kind:         Connection
 Metadata:
-  Creation Timestamp:  2018-07-24T10:54:51Z
+  Creation Timestamp:  2019-02-14T14:53:31Z
   Generation:          1
-  Resource Version:    4284
-  Self Link:           /apis/ember-csi.io/v1/namespaces/default/connections/b58dceb8-e793-4b11-b5a5-aaf1ca56d9e2
-  UID:                 fdb065e5-8f2f-11e8-847c-525400059da0
+  Resource Version:    4141
+  Self Link:           /apis/ember-csi.io/v1/namespaces/default/connections/63394bf4-9153-4c9c-9e76-aa73d5b80b48
+  UID:                 4bbed677-3068-11e9-aed5-5254002dbb88
 Events:                <none>
 ```
 
-All the different Ember CRDs, `keyvalue`, `volume`, `connection`, are grouped under the `ember` name that we can use to get all the Ember-CSI related metadata:
+Now let's create a snapshot of our volume, and see its Kubernetes and Ember-CSI representations:
+
+```shell
+[vagrant@master ~]$ kubectl create -f kubeyml/lvm/07-snapshot.yml
+volumesnapshot.snapshot.storage.k8s.io/csi-snap created
+
+
+[vagrant@master ~]$ kubectl describe VolumeSnapshot
+Name:         csi-snap
+Namespace:    default
+Labels:       <none>
+Annotations:  <none>
+API Version:  snapshot.storage.k8s.io/v1alpha1
+Kind:         VolumeSnapshot
+Metadata:
+  Creation Timestamp:  2019-02-14T15:00:35Z
+  Finalizers:
+    snapshot.storage.kubernetes.io/volumesnapshot-protection
+  Generation:        5
+  Resource Version:  4723
+  Self Link:         /apis/snapshot.storage.k8s.io/v1alpha1/namespaces/default/volumesnapshots/csi-snap
+  UID:               488d1760-3069-11e9-aed5-5254002dbb88
+Spec:
+  Snapshot Class Name:    csi-snap
+  Snapshot Content Name:  snapcontent-488d1760-3069-11e9-aed5-5254002dbb88
+  Source:
+    API Group:  <nil>
+    Kind:       PersistentVolumeClaim
+    Name:       csi-pvc
+Status:
+  Creation Time:  2019-02-14T15:00:35Z
+  Ready To Use:   true
+  Restore Size:   <nil>
+Events:           <none>
+
+
+[vagrant@master ~]$ kubectl describe snap
+Name:         2cee62a1-6ad9-4554-8c58-f5d3dd07525f
+Namespace:    default
+Labels:       snapshot_id=2cee62a1-6ad9-4554-8c58-f5d3dd07525f
+              snapshot_name=snapshot-488d1760-3069-11e9-aed5-5254002dbb88
+              volume_id=540c5a37-ce98-4b47-83f7-10c54a4777b9
+Annotations:  json:
+                {"ovo":{"versioned_object.version":"1.5","versioned_object.name":"Snapshot","versioned_object.data":{"provider_id":null,"updated_at":null,...
+API Version:  ember-csi.io/v1
+Kind:         Snapshot
+Metadata:
+  Creation Timestamp:  2019-02-14T15:00:36Z
+  Generation:          1
+  Resource Version:    4718
+  Self Link:           /apis/ember-csi.io/v1/namespaces/default/snapshots/2cee62a1-6ad9-4554-8c58-f5d3dd07525f
+  UID:                 48e7db9b-3069-11e9-aed5-5254002dbb88
+Events:                <none>
+```
+
+Now create a volume from that snapshot:
+
+```shell
+[vagrant@master ~]$ kubectl create -f kubeyml/lvm/08-restore-snapshot.yml
+persistentvolumeclaim/vol-from-snap created
+
+
+[vagrant@master ~]$ kubectl get vol
+NAME                                   AGE
+540c5a37-ce98-4b47-83f7-10c54a4777b9   21m
+faa72ced-43ef-45ac-9bfe-5781e15f75da   6s
+```
+
+And create another pod/container using this new volume, which will be subject to the same topology restrictions as our first volume, so it will also be created on *node1*.
+
+```shell
+[vagrant@master ~]$ kubectl create -f kubeyml/lvm/09-app-from-snap-vol.yml
+pod/my-csi-app-2 created
+
+[vagrant@master ~]$ kubectl describe pod my-csi-app-2 |grep Node:
+Node:               node1/192.168.10.101
+
+[vagrant@master ~]$ kubectl get conn
+NAME                                   AGE
+35c43fc6-65db-4ce5-b328-830c86eba08a   40s
+63394bf4-9153-4c9c-9e76-aa73d5b80b48   10m
+
+[vagrant@master ~]$ kubectl get pod
+NAME                 READY   STATUS    RESTARTS   AGE
+csi-controller-0     6/6     Running   0          48m
+csi-node-0-jpdsg     3/3     Running   1          46m
+csi-node-qf4ld       3/3     Running   1          46m
+csi-node-rbd-k5dx5   3/3     Running   0          43m
+csi-node-rbd-mrxwc   3/3     Running   0          43m
+csi-rbd-0            7/7     Running   1          43m
+my-csi-app           1/1     Running   0          10m
+my-csi-app-2         1/1     Running   0          55s
+```
+
+We can now all these same steps with the RBD backend that, according to the topology we've defined, can be accessed from all of our worker nodes:
+
+```shell
+[vagrant@master ~]$ kubectl create -f kubeyml/rbd/05-pvc.yml
+persistentvolumeclaim/csi-rbd created
+
+
+[vagrant@master ~]$ kubectl get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                   STORAGECLASS   REASON   AGE
+pvc-7537f440-3069-11e9-aed5-5254002dbb88   1Gi        RWO            Delete           Bound    default/vol-from-snap   csi-sc                  2m59s
+pvc-7db8685b-3066-11e9-aed5-5254002dbb88   1Gi        RWO            Delete           Bound    default/csi-pvc         csi-sc                  24m
+pvc-ddf984b7-3069-11e9-aed5-5254002dbb88   2Gi        RWO            Delete           Bound    default/csi-rbd         csi-rbd                 3s
+
+
+[vagrant@master ~]$ kubectl create -f kubeyml/rbd/06-app.yml
+pod/my-csi-app-rbd created
+
+
+[vagrant@master ~]$ kubectl create -f kubeyml/rbd/07-snapshot.yml
+volumesnapshot.snapshot.storage.k8s.io/csi-rbd created
+
+
+[vagrant@master ~]$ kubectl get snap
+NAME                                   AGE
+2cee62a1-6ad9-4554-8c58-f5d3dd07525f   5m
+79fd2dff-7ba5-4e29-b4b4-64ee94e1c36d   14s
+
+
+[vagrant@master ~]$ kubectl create -f kubeyml/rbd/08-restore-snapshot.yml
+persistentvolumeclaim/vol-from-snap-rbd created
+
+
+[vagrant@master ~]$ kugetctl get pv
+-bash: kugetctl: command not found
+[vagrant@master ~]$ kubectl get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                       STORAGECLASS   REASON   AGE
+pvc-1117b711-306a-11e9-aed5-5254002dbb88   2Gi        RWO            Delete           Bound    default/vol-from-snap-rbd   csi-rbd                 11s
+pvc-7537f440-3069-11e9-aed5-5254002dbb88   1Gi        RWO            Delete           Bound    default/vol-from-snap       csi-sc                  4m31s
+pvc-7db8685b-3066-11e9-aed5-5254002dbb88   1Gi        RWO            Delete           Bound    default/csi-pvc             csi-sc                  25m
+pvc-ddf984b7-3069-11e9-aed5-5254002dbb88   2Gi        RWO            Delete           Bound    default/csi-rbd             csi-rbd                 95s
+
+
+[vagrant@master ~]$ kubectl create -f kubeyml/rbd/09-app-from-snap-vol.yml
+pod/my-csi-app-rbd-2 created
+
+[vagrant@master ~]$ kubectl get pod
+NAME                 READY   STATUS    RESTARTS   AGE
+csi-controller-0     6/6     Running   0          52m
+csi-node-0-jpdsg     3/3     Running   1          50m
+csi-node-qf4ld       3/3     Running   1          50m
+csi-node-rbd-k5dx5   3/3     Running   0          47m
+csi-node-rbd-mrxwc   3/3     Running   0          47m
+csi-rbd-0            7/7     Running   1          47m
+my-csi-app           1/1     Running   0          14m
+my-csi-app-2         1/1     Running   0          4m54s
+my-csi-app-rbd       1/1     Running   0          3m1s
+my-csi-app-rbd-2     1/1     Running   0          84s
+
+[vagrant@master ~]$ kubectl describe pod my-csi-app-rbd |grep Node:
+Node:               node0/192.168.10.100
+
+
+[vagrant@master ~]$ kubectl describe pod my-csi-app-rbd-2 |grep Node:
+Node:               node1/192.168.10.101
+```
+
+All the internal Ember-CSI metadata is grouped under the name `ember`, and we can get it all like this:
 
 ```shell
 [vagrant@master ~]$ kubectl get ember
-NAME      AGE
-node0     49m
-node1     49m
+NAME                                                         AGE
+snapshot.ember-csi.io/2cee62a1-6ad9-4554-8c58-f5d3dd07525f   9m
+snapshot.ember-csi.io/79fd2dff-7ba5-4e29-b4b4-64ee94e1c36d   4m
 
-NAME                                   AGE
-4c1b19f4-7336-4d97-b4ab-5ea70efd39d5   17m
+NAME                                                           AGE
+connection.ember-csi.io/35c43fc6-65db-4ce5-b328-830c86eba08a   6m
+connection.ember-csi.io/63394bf4-9153-4c9c-9e76-aa73d5b80b48   16m
+connection.ember-csi.io/a96e8e33-f14e-46e6-8732-67efae593539   5m
+connection.ember-csi.io/eeb85633-a554-4b2d-aabe-a8bf5c3b7f41   3m
 
-NAME                                   AGE
-b58dceb8-e793-4b11-b5a5-aaf1ca56d9e2   8m
+NAME                                                       AGE
+volume.ember-csi.io/540c5a37-ce98-4b47-83f7-10c54a4777b9   29m
+volume.ember-csi.io/9e1e7f95-2007-4775-92a8-896881b22618   3m
+volume.ember-csi.io/f91e729e-e9d1-4a28-89f8-293423047eea   5m
+volume.ember-csi.io/faa72ced-43ef-45ac-9bfe-5781e15f75da   8m
+
+NAME                                           AGE
+keyvalue.ember-csi.io/ember-csi.io.node0       51m
+keyvalue.ember-csi.io/ember-csi.io.node1       51m
+keyvalue.ember-csi.io/rbd.ember-csi.io.node0   49m
+keyvalue.ember-csi.io/rbd.ember-csi.io.node1   49m
 ```
 
-The Ember CSI plugin the demo deploys has the debugging feature enabled, which allows us to get a Python console on GRPC requests.  The debugging is enabled but is turned off at start, and can be toggled using signal `USR1`.  Once the debug is on we can connect to the Ember CSI container and connect to port 4444.  Toggling debug mode on the controller node is as simple as:
+
+Remember that, for debugging purposes, besides the logs, you can also get a Python console on GRPC requests by starting the debug mode, then executing bash into the node, installing `nmap-ncat`, and when a request is made connecting to port 4444.  For example, to toggle debug mode on the controller node:
 
 
 ```shell
