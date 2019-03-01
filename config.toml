@@ -13,4 +13,5 @@ pygmentsCodeFences = true
     title = "Articles"
     viewalltext = "View All"
     postsperpage = "6"
-    foldername = "articles"
+    foldername = "post"
+    findoutmoretext = "Continue Reading"

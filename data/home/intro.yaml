@@ -15,5 +15,5 @@ buttons:
 - link: '#getstarted'
   text: 'Get Started'
 
-- link: '#'
-  text: 'Documentation'
+- link: '#articles'
+  text: 'Articles'

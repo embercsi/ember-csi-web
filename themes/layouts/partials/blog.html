@@ -1,23 +1,20 @@
 <!-- Blog -->
-<section id="blog">
+<section id="articles">
     <header class="major">
         <h2>{{ .title }}</h2>
     </header>
     <div class="row">
         {{ range .paginator.Pages }}
-        <div class="6u 12u(mobile)">
+        <div class="4u 12u(mobile)">
             <section class="box">
                 <a href="{{ .Permalink }}" class="image featured"><img src="{{ .Site.BaseURL }}{{ .Params.thumbnail }}" alt="" /></a>
                 <header>
                     <h3>{{ .Title }}</h3>
-                    {{ if not .PublishDate.IsZero }}
-                    <p>{{ .PublishDate.Format "January 2, 2006" }}{{ if ne .PublishDate .Lastmod }} - last updated {{ .Lastmod.Format "January 2, 2006" }}{{ end }}</p>
-                    {{ end }}
                 </header>
                 <p>{{ .Description }}</p>
                 <footer>
                     <ul class="actions">
-                        <li><a href="{{ .Permalink }}" class="button icon fa-file-text">Continue Reading</a></li>
+                        <li><a href="{{ .Permalink }}" class="button alt">{{ .Site.Params.blog.findoutmoretext }}</a></li>
                         {{ if and (.Site.Params.Settings.disqus) (.Params.disqusid) }}
                         <li><a href="{{ .Permalink }}" class="button alt icon fa-comment disqus-comment-count" data-disqus-identifier="{{ .Params.disqusid }}">0 Comments</a></li>
                         {{ end }}
