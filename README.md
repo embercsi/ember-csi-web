@@ -49,6 +49,6 @@ Now the pages will be served on `localhost:1313` and any changes we do to the so
 When we are ready to generate the website and publish it we have to do:
 
 ```
-$ MSG='Add my cool new post' make generate
+$ make generate MSG='Add my cool new post'
 $ make publish
 ```
