@@ -3,26 +3,30 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>/getstarted/getting-started-k8s/</loc>
+    <lastmod>2019-02-28T16:31:57+01:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>/getstarted/getting-started-kubevirt/</loc>
+    <lastmod>2018-08-02T19:05:52+02:00</lastmod>
+  </url>
+  
+  <url>
     <loc>/categories/</loc>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>/</loc>
+    <lastmod>2019-02-28T16:31:57+01:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>/getstarted/</loc>
+    <lastmod>2019-02-28T16:31:57+01:00</lastmod>
     <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>/getstarted/10-getting-started-kubevirt/</loc>
-  </url>
-  
-  <url>
-    <loc>/getstarted/01-getting-started-k8s/</loc>
   </url>
   
   <url>
