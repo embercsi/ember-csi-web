@@ -52,3 +52,23 @@ When we are ready to generate the website and publish it we have to do:
 $ make generate MSG='Add my cool new post'
 $ make publish
 ```
+
+And then generate a new PR from our fork's branch to the `embercsi/ember-csi-web` repository.
+
+Reviewers should check locally the resulting website from the `gh-pages` PR before merging the patch and therefore publishing the changes.
+
+This can be done by checking out the PR branch locally, for example like this:
+
+```
+$ cd public
+$ git checkout -b pr-gh-pages
+$ git pull https://github.com/Akrog/ember-csi-web.git gh-pages
+```
+
+And then serving the site using Python:
+
+```
+$ python -m SimpleHTTPServer 12345
+```
+
+Finally we just need to go with our browser to http://127.0.0.1:12345 and check the contents.
