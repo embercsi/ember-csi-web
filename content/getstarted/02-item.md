@@ -8,49 +8,62 @@ author = "Gorka Eguileor"
 draft = false
 hidesidebar = true
 publishDate=2018-08-02T19:05:52+02:00
+lastmod=2019-03-03T22:30:57-06:00
 weight = 2
 +++
-To use the Ember-CSI plugin on Kubevirt we need to make changes to our deployment.
+To use Ember-CSI plugin on Kubevirt, we will utilize the [Ember-CSI-Kubevirt repository](https://github.com/embercsi/ember-csi-kubevirt.git) which can deploy an all-in-one demo deployment. The all-in-one demo deployment comprises of either Kubernetes/OpenShift with Kubevirt, an ephemeral Ceph environment and finally an Ember-CSI deployment configured with the previously deployed ephemeral Ceph plugin.
 
-The easiest way to make the changes is to copy this kubevirt directory into a directory of the kubevirt repository, and run the `csi_up.sh` script from there after the cluster is up and running.
+### Requirements
 
-For now the example only supports single node deployments, and for convenience we are using a pod instead of a StatefulSet and DaemonSets and the permissions are too broad.
+This demo requires QEMU-KVM, libvirt, Vagrant, vagrant-libvirt and ansible installed in the system.
 
-Given the following assumptions:
+In Fedora:
 
-- This `kubevirt` directory is in `$cl_example`.
-- We have modified `X_CSI_BACKEND_CONFIG` environmental variable in the `csi.yml` (example is for XtremIO).
-- Our current working directory is `kubevirt` repository's root directory.
-- We haven't created a kubevirt cluster yet.
+```shell
+$ sudo dnf -y install qemu-kvm libvirt vagrant vagrant-libvirt ansible
+```
 
-The following commands will create the cluster, make changes to the cluster to support CSI plugins, deploy the CSI plugin, create a PVC, and an app that uses the PVC:
+Then we have to make sure the libvirt daemon is up and running.
 
+In Fedora:
+
+```shell
+$ sudo systemctl start libvirtd
+```
+
+### Configuration
+The Ember-CSI-Kubevirt repo deploys OpenShift 3.11 as its default cluster. This can be changed by editing the `tools/env.sh` file and changing the `KUBEVIRT_PROVIDER` variable.
+
+### Setup
+
+First we need to clone the project and change into the repository's directory:
+
+```shell
+git clone https://github.com/embercsi/ember-csi-kubevirt.git
+cd ember-csi-kubevirt/
+```
+
+Then we deploy the cluster along with Kubevirt.
 
 ```shell
 make cluster-up
-make cluster-sync
-
-# Modify the cluster for CSI
-csi/csi_up.sh
-
-# Setup RBAC
-cluster/kubectl.sh create -f csi/rbac.yml
-
-# Setup the CSI driver
-cluster/kubectl.sh create -f csi/csi.yml
-
-# Create a PVC (creates a volume on the storage via the CSI plugin)
-cluster/kubectl.sh create -f csi/pvc.yml
-
-# Create an APP that uses the created volume
-cluster/kubectl.sh create -f csi/app.yml
 ```
 
-We can send GRPC commands to the CSI driver using the deployed csc container.
-
-For example to list volumes you can do:
+Next we deploy the Ember-CSI Operator.
 
 ```shell
-cluster/kubectl.sh exec -c csc -it csi-xtremio-pod csc controller list-volumes
+make deploy
 ```
 
+We then deploy an ephemeral Ceph cluster and deploy an Ember-CSI Ceph plugin which utilizes the ephemeral Ceph cluster. After Ember-CSI and Ceph are deployed, a PVC and a dummy app is also created to showcase tha
+t the Ceph plugin can be accessed via Ember-CSI.
+
+```shell
+make demo
+```
+
+To tear down the whole deployment:
+
+```shell
+make cluster-down
+```
