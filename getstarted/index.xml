@@ -13,20 +13,20 @@
     
     <item>
       <title>Kubernetes and Ember CSI</title>
-      <link>/getstarted/getting-started-k8s/</link>
+      <link>/getstarted/k8s/</link>
       <pubDate>Thu, 02 Aug 2018 19:05:52 +0200</pubDate>
       
-      <guid>/getstarted/getting-started-k8s/</guid>
+      <guid>/getstarted/k8s/</guid>
       <description>Many things need to be considered when deploying a CSI plugin in Kubernetes, making it a painful experience for many first time users. To ease this first contact with Kubernetes and CSI, the Ember repository comes with a Kubernetes example that automates the deployment of Kubernetes with Ember CSI using CSI spec version 1.0.
 This article covers how to run Ember-CSI as a CSI v1 plugin deployed in Kubernetes 1.</description>
     </item>
     
     <item>
       <title>KubeVirt and Ember CSI</title>
-      <link>/getstarted/getting-started-kubevirt/</link>
+      <link>/getstarted/kubevirt/</link>
       <pubDate>Thu, 02 Aug 2018 19:05:52 +0200</pubDate>
       
-      <guid>/getstarted/getting-started-kubevirt/</guid>
+      <guid>/getstarted/kubevirt/</guid>
       <description>To use the Ember-CSI plugin on Kubevirt we need to make changes to our deployment.
 The easiest way to make the changes is to copy this kubevirt directory into a directory of the kubevirt repository, and run the csi_up.sh script from there after the cluster is up and running.
 For now the example only supports single node deployments, and for convenience we are using a pod instead of a StatefulSet and DaemonSets and the permissions are too broad.</description>

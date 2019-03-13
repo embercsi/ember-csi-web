@@ -57,14 +57,14 @@
     <header>
         <h2>Kubernetes and Ember CSI</h2>
         
-        <p>August 2, 2018 - last updated February 28, 2019</p>
+        <p>August 2, 2018 - last updated March 13, 2019</p>
         
     </header>
     
 
 <p>Many things need to be considered when deploying a CSI plugin in Kubernetes, making it a painful experience for many first time users.  To ease this first contact with Kubernetes and CSI, the Ember repository comes with a <a href="https://github.com/embercsi/ember-csi/tree/master/examples/k8s_v1.13-CSI_v1.0">Kubernetes example that automates the deployment of Kubernetes with Ember CSI using CSI spec version 1.0</a>.</p>
 
-<p>This article covers how to run Ember-CSI as a CSI v1 plugin deployed in Kubernetes 1.13, to showcase all CSI functionality: volume creation and deletion, creating snapshots and volumes from them, topology, liveness probes, etc.</p>
+<p>This article covers how to run Ember-CSI as a CSI v1 plugin deployed in Kubernetes 1.13, to showcase all CSI functionality: volume creation and deletion, both block and mount types, creating snapshots and volumes from them, topology, liveness probes, etc.</p>
 
 <p>We will deploy a scenario with a segregated infra node a 2 workload nodes, and we will have 2 different storage backends available in Kubernetes via Ember-CSI.</p>
 
@@ -197,65 +197,65 @@ ember-csi.io       8m
 rbd.ember-csi.io   4m</code></pre></div>
 <p>Check the logs of the CSI <em>controller</em> to see that its running as expected:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl logs csi-controller-0 -c csi-driver
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Ember CSI v0.0.2 with <span style="color:#ae81ff">30</span> workers <span style="color:#f92672">(</span>cinder: v1.0.0.dev16644, CSI spec: v1.0.0<span style="color:#f92672">)</span>
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Persistence module: CRDPersistence
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Running as controller with backend LVMVolumeDriver v3.0.0
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Now serving on unix:///csi-data/csi.sock...
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287040280<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287040280<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287039920<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287039920<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287040400<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC ControllerGetCapabilities
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287040400<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC ControllerGetCapabilities served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287040280<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287040280<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287039920<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287039920<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287040400<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287040400<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287040280<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginCapabilities
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287040280<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginCapabilities served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287039920<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC ControllerGetCapabilities
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287039920<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC ControllerGetCapabilities served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:19:49 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287040400<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:19:49 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287040400<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:19 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287040400<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:19 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287040400<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:22:49 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287033424<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:22:49 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287033424<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:24:19 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287034624<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:24:19 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287034624<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Ember CSI v0.0.2 with <span style="color:#ae81ff">30</span> workers <span style="color:#f92672">(</span>CSI spec: v1.0.0, cinderlib: v0.3.10.dev4, cinder: v13.1.0.dev902<span style="color:#f92672">)</span>
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Persistence module: CRDPersistence
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Running as controller with backend LVMVolumeDriver v3.0.0
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Now serving on unix:///csi-data/csi.sock...
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 default INFO ember_csi.common <span style="color:#f92672">[</span>req-15807873-3e8a-4107-b41a-6bd63ebdccb8<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 default INFO ember_csi.common <span style="color:#f92672">[</span>req-15807873-3e8a-4107-b41a-6bd63ebdccb8<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 default INFO ember_csi.common <span style="color:#f92672">[</span>req-b0ab521b-fd7a-41f6-a03e-3328ebe3a6da<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 default INFO ember_csi.common <span style="color:#f92672">[</span>req-b0ab521b-fd7a-41f6-a03e-3328ebe3a6da<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 default INFO ember_csi.common <span style="color:#f92672">[</span>req-500d03fb-40d6-4eca-8188-07d2b2d6905c<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC ControllerGetCapabilities
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 default INFO ember_csi.common <span style="color:#f92672">[</span>req-500d03fb-40d6-4eca-8188-07d2b2d6905c<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC ControllerGetCapabilities served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 default INFO ember_csi.common <span style="color:#f92672">[</span>req-965509cc-2053-4257-afa9-d8d4ea3eeaf1<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 default INFO ember_csi.common <span style="color:#f92672">[</span>req-965509cc-2053-4257-afa9-d8d4ea3eeaf1<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 default INFO ember_csi.common <span style="color:#f92672">[</span>req-214deb9d-aa3d-44d4-8cb4-7ebadaabfffc<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 default INFO ember_csi.common <span style="color:#f92672">[</span>req-214deb9d-aa3d-44d4-8cb4-7ebadaabfffc<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 default INFO ember_csi.common <span style="color:#f92672">[</span>req-ef6256e9-4445-481a-b3e9-cdfa0e09a41a<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 default INFO ember_csi.common <span style="color:#f92672">[</span>req-ef6256e9-4445-481a-b3e9-cdfa0e09a41a<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 default INFO ember_csi.common <span style="color:#f92672">[</span>req-3ecc4201-423f-4d98-b0c3-4dfedcc111ea<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginCapabilities
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 default INFO ember_csi.common <span style="color:#f92672">[</span>req-3ecc4201-423f-4d98-b0c3-4dfedcc111ea<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginCapabilities served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 default INFO ember_csi.common <span style="color:#f92672">[</span>req-de7aec08-b728-432d-be69-27a6ed59d668<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC ControllerGetCapabilities
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:04 default INFO ember_csi.common <span style="color:#f92672">[</span>req-de7aec08-b728-432d-be69-27a6ed59d668<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC ControllerGetCapabilities served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:19:49 default INFO ember_csi.common <span style="color:#f92672">[</span>req-cc8dbfe3-7d92-48b6-9fea-b19f4e635fae<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:19:49 default INFO ember_csi.common <span style="color:#f92672">[</span>req-cc8dbfe3-7d92-48b6-9fea-b19f4e635fae<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:19 default INFO ember_csi.common <span style="color:#f92672">[</span>req-6838a1e3-a7d5-4689-a71f-399a21930788<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:19 default INFO ember_csi.common <span style="color:#f92672">[</span>req-6838a1e3-a7d5-4689-a71f-399a21930788<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:22:49 default INFO ember_csi.common <span style="color:#f92672">[</span>req-212bb19e-3e0a-46ce-9a66-32eaca2c15e4<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:22:49 default INFO ember_csi.common <span style="color:#f92672">[</span>req-212bb19e-3e0a-46ce-9a66-32eaca2c15e4<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:24:19 default INFO ember_csi.common <span style="color:#f92672">[</span>req-cbb20af4-5eb6-4e1a-a8ea-0132022f8c48<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:24:19 default INFO ember_csi.common <span style="color:#f92672">[</span>req-cbb20af4-5eb6-4e1a-a8ea-0132022f8c48<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
 
 
 <span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl logs csi-rbd-0 -c csi-driver
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:15 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Ember CSI v0.0.2 with <span style="color:#ae81ff">30</span> workers <span style="color:#f92672">(</span>cinder: v1.0.0.dev16644, CSI spec: v1.0.0<span style="color:#f92672">)</span>
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:15 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Persistence module: CRDPersistence
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:15 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Running as controller with backend RBDDriver v1.2.0
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:15 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:15 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:15 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Now serving on unix:///csi-data/csi.sock...
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198625208<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198625208<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198624848<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198624848<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198625328<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198625328<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198625208<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC ControllerGetCapabilities
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198625208<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC ControllerGetCapabilities served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198624848<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198624848<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198625328<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198625328<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198625208<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginCapabilities
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198625208<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginCapabilities served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198624848<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC ControllerGetCapabilities
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198624848<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC ControllerGetCapabilities served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:24:11 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198625328<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:24:11 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198625328<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:25:41 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198625208<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:25:41 INFO ember_csi.common <span style="color:#f92672">[</span>req-140121198625208<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s</code></pre></div>
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:15 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Ember CSI v0.0.2 with <span style="color:#ae81ff">30</span> workers <span style="color:#f92672">(</span>CSI spec: v1.0.0, cinderlib: v0.3.10.dev4, cinder: v13.1.0.dev902<span style="color:#f92672">)</span>
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:15 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Persistence module: CRDPersistence
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:15 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Running as controller with backend RBDDriver v1.2.0
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:15 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:15 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:15 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Now serving on unix:///csi-data/csi.sock...
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-f261da91-6b20-48a8-9a5c-26cd16b6ab13<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-f261da91-6b20-48a8-9a5c-26cd16b6ab13<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-503b6596-f408-4b91-94be-63557ef1ffa8<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-503b6596-f408-4b91-94be-63557ef1ffa8<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-4664c4d5-407e-4e78-91d2-ad2fef3c8176<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-4664c4d5-407e-4e78-91d2-ad2fef3c8176<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-4fd5961f-884d-4029-936b-08e98bee41d9<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC ControllerGetCapabilities
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-4fd5961f-884d-4029-936b-08e98bee41d9<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC ControllerGetCapabilities served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-fb6fbddf-e930-45f3-a476-d1a3212c7cfa<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-fb6fbddf-e930-45f3-a476-d1a3212c7cfa<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-3f079fea-f519-401e-b3ff-c0355abf4176<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-3f079fea-f519-401e-b3ff-c0355abf4176<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-7b0c6db7-e426-460a-beb6-0499becfe3ff<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginCapabilities
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-7b0c6db7-e426-460a-beb6-0499becfe3ff<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginCapabilities served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-84b46ba5-3b06-4f8d-8295-689795b7a9b9<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC ControllerGetCapabilities
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:16 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-84b46ba5-3b06-4f8d-8295-689795b7a9b9<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC ControllerGetCapabilities served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:24:11 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-74bf9abc-80b6-40ca-a032-ff761a389a2d<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:24:11 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-74bf9abc-80b6-40ca-a032-ff761a389a2d<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:25:41 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-a85e05d9-3c71-42f6-8c67-48ac7151667b<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:25:41 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-a85e05d9-3c71-42f6-8c67-48ac7151667b<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s</code></pre></div>
 <p>Check that the CSI <em>node</em> services are also running:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl get pod --selector<span style="color:#f92672">=</span>app<span style="color:#f92672">=</span>csi-node
 NAME               READY   STATUS    RESTARTS   AGE
@@ -350,90 +350,76 @@ Status:
 Events:                       &lt;none&gt;</code></pre></div>
 <p>Check the CSI <em>node</em> logs:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl logs csi-node-0-jpdsg -c csi-driver
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:41 WARNING os_brick.initiator.connectors.nvme <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Unable to locate dmidecode. For Cinder RSD Backend, please make sure it is installed: <span style="color:#f92672">[</span>Errno <span style="color:#ae81ff">2</span><span style="color:#f92672">]</span> No such file or directory
-Command: dmidecode
-Exit code: -
-Stdout: None
-Stderr: None: ProcessExecutionError: <span style="color:#f92672">[</span>Errno <span style="color:#ae81ff">2</span><span style="color:#f92672">]</span> No such file or directory
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Ember CSI v0.0.2 with <span style="color:#ae81ff">30</span> workers <span style="color:#f92672">(</span>cinder: v1.0.0.dev16644, CSI spec: v1.0.0<span style="color:#f92672">)</span>
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Persistence module: CRDPersistence
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Running as node
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Now serving on unix:///csi-data/csi.sock...
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:47 INFO ember_csi.common <span style="color:#f92672">[</span>req-139625352109064<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:47 INFO ember_csi.common <span style="color:#f92672">[</span>req-139625352109064<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:47 INFO ember_csi.common <span style="color:#f92672">[</span>req-139625352108584<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC NodeGetInfo
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:47 INFO ember_csi.common <span style="color:#f92672">[</span>req-139625352108584<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC NodeGetInfo served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:07 INFO ember_csi.common <span style="color:#f92672">[</span>req-139625352107984<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:07 INFO ember_csi.common <span style="color:#f92672">[</span>req-139625352107984<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Ember CSI v0.0.2 with <span style="color:#ae81ff">30</span> workers <span style="color:#f92672">(</span>CSI spec: v1.0.0, cinderlib: v0.3.10.dev4, cinder: v13.1.0.dev902<span style="color:#f92672">)</span>
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Persistence module: CRDPersistence
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Running as node
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Now serving on unix:///csi-data/csi.sock...
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:47 default INFO ember_csi.common <span style="color:#f92672">[</span>req-56458a2d-4e73-402a-b16c-c3f69768b11b<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:47 default INFO ember_csi.common <span style="color:#f92672">[</span>req-56458a2d-4e73-402a-b16c-c3f69768b11b<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:47 default INFO ember_csi.common <span style="color:#f92672">[</span>req-250d90d5-3d38-4397-b66a-596bc1f5b811<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC NodeGetInfo
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:47 default INFO ember_csi.common <span style="color:#f92672">[</span>req-250d90d5-3d38-4397-b66a-596bc1f5b811<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC NodeGetInfo served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:07 default INFO ember_csi.common <span style="color:#f92672">[</span>req-86778156-094d-42a5-a4e5-510036adbed2<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:21:07 default INFO ember_csi.common <span style="color:#f92672">[</span>req-86778156-094d-42a5-a4e5-510036adbed2<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
 
 
 <span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl logs csi-node-qf4ld -c csi-driver
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:42 WARNING os_brick.initiator.connectors.nvme <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Unable to locate dmidecode. For Cinder RSD Backend, please make sure it is installed: <span style="color:#f92672">[</span>Errno <span style="color:#ae81ff">2</span><span style="color:#f92672">]</span> No such file or directory
-Command: dmidecode
-Exit code: -
-Stdout: None
-Stderr: None: ProcessExecutionError: <span style="color:#f92672">[</span>Errno <span style="color:#ae81ff">2</span><span style="color:#f92672">]</span> No such file or directory
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Ember CSI v0.0.2 with <span style="color:#ae81ff">30</span> workers <span style="color:#f92672">(</span>cinder: v1.0.0.dev16644, CSI spec: v1.0.0<span style="color:#f92672">)</span>
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Persistence module: CRDPersistence
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Running as node
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Now serving on unix:///csi-data/csi.sock...
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:48 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458013056008<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:48 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458013056008<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:48 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458013055528<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC NodeGetInfo
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:48 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458013055528<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC NodeGetInfo served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:22:05 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458013054928<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:22:05 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458013054928<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Ember CSI v0.0.2 with <span style="color:#ae81ff">30</span> workers <span style="color:#f92672">(</span>CSI spec: v1.0.0, cinderlib: v0.3.10.dev4, cinder: v13.1.0.dev902<span style="color:#f92672">)</span>
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Persistence module: CRDPersistence
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Running as node
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Now serving on unix:///csi-data/csi.sock...
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:48 default INFO ember_csi.common <span style="color:#f92672">[</span>req-14bc25a5-2585-4748-8051-3b3f9bd3bba3<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:48 default INFO ember_csi.common <span style="color:#f92672">[</span>req-14bc25a5-2585-4748-8051-3b3f9bd3bba3<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:48 default INFO ember_csi.common <span style="color:#f92672">[</span>req-f76992d8-f919-41b5-80d7-7a4bc597e288<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC NodeGetInfo
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:48 default INFO ember_csi.common <span style="color:#f92672">[</span>req-f76992d8-f919-41b5-80d7-7a4bc597e288<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC NodeGetInfo served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:22:05 default INFO ember_csi.common <span style="color:#f92672">[</span>req-8092dad2-9c44-4fff-bfd0-c90c1823d014<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:22:05 default INFO ember_csi.common <span style="color:#f92672">[</span>req-8092dad2-9c44-4fff-bfd0-c90c1823d014<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
 
 
 <span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl logs csi-node-rbd-k5dx5 -c csi-driver
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 WARNING os_brick.initiator.connectors.nvme <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Unable to locate dmidecode. For Cinder RSD Backend, please make sure it is installed: <span style="color:#f92672">[</span>Errno <span style="color:#ae81ff">2</span><span style="color:#f92672">]</span> No such file or directory
-Command: dmidecode
-Exit code: -
-Stdout: None
-Stderr: None: ProcessExecutionError: <span style="color:#f92672">[</span>Errno <span style="color:#ae81ff">2</span><span style="color:#f92672">]</span> No such file or directory
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Ember CSI v0.0.2 with <span style="color:#ae81ff">30</span> workers <span style="color:#f92672">(</span>cinder: v1.0.0.dev16644, CSI spec: v1.0.0<span style="color:#f92672">)</span>
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Persistence module: CRDPersistence
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Running as node
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Now serving on unix:///csi-data/csi.sock...
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 INFO ember_csi.common <span style="color:#f92672">[</span>req-140165654412296<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 INFO ember_csi.common <span style="color:#f92672">[</span>req-140165654412296<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 INFO ember_csi.common <span style="color:#f92672">[</span>req-140165654411816<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC NodeGetInfo
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 INFO ember_csi.common <span style="color:#f92672">[</span>req-140165654411816<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC NodeGetInfo served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:23:25 INFO ember_csi.common <span style="color:#f92672">[</span>req-140165654411216<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:23:25 INFO ember_csi.common <span style="color:#f92672">[</span>req-140165654411216<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Ember CSI v0.0.2 with <span style="color:#ae81ff">30</span> workers <span style="color:#f92672">(</span>cinder: v1.0.0.dev16644, CSI spec: v1.0.0<span style="color:#f92672">)</span>
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Persistence module: CRDPersistence
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Running as node
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Now serving on unix:///csi-data/csi.sock...
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-a12f4699-c94d-4626-8406-f002f895b425<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-a12f4699-c94d-4626-8406-f002f895b425<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-d7200eb2-4a96-448a-8917-aa06f629e5c2<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC NodeGetInfo
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:45 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-d7200eb2-4a96-448a-8917-aa06f629e5c2<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC NodeGetInfo served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:23:25 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-942c9ddc-fa92-42e0-834d-b8af7064a68d<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:23:25 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-942c9ddc-fa92-42e0-834d-b8af7064a68d<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
 
 
 <span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl logs csi-node-rbd-mrxwc -c csi-driver
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:46 WARNING os_brick.initiator.connectors.nvme <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Unable to locate dmidecode. For Cinder RSD Backend, please make sure it is installed: <span style="color:#f92672">[</span>Errno <span style="color:#ae81ff">2</span><span style="color:#f92672">]</span> No such file or directory
-Command: dmidecode
-Exit code: -
-Stdout: None
-Stderr: None: ProcessExecutionError: <span style="color:#f92672">[</span>Errno <span style="color:#ae81ff">2</span><span style="color:#f92672">]</span> No such file or directory
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Ember CSI v0.0.2 with <span style="color:#ae81ff">30</span> workers <span style="color:#f92672">(</span>cinder: v1.0.0.dev16644, CSI spec: v1.0.0<span style="color:#f92672">)</span>
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Persistence module: CRDPersistence
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Running as node
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Now serving on unix:///csi-data/csi.sock...
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:47 INFO ember_csi.common <span style="color:#f92672">[</span>req-140135792684040<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:47 INFO ember_csi.common <span style="color:#f92672">[</span>req-140135792684040<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:47 INFO ember_csi.common <span style="color:#f92672">[</span>req-140135792683560<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC NodeGetInfo
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:47 INFO ember_csi.common <span style="color:#f92672">[</span>req-140135792683560<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC NodeGetInfo served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:22:48 INFO ember_csi.common <span style="color:#f92672">[</span>req-140135792682960<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:22:48 INFO ember_csi.common <span style="color:#f92672">[</span>req-140135792682960<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s</code></pre></div>
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:46 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Ember CSI v0.0.2 with <span style="color:#ae81ff">30</span> workers <span style="color:#f92672">(</span>CSI spec: v1.0.0, cinderlib: v0.3.10.dev4, cinder: v13.1.0.dev902<span style="color:#f92672">)</span>
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:46 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Persistence module: CRDPersistence
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:46 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Running as node
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:46 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Debugging feature is ENABLED with ember_csi.rpdb and OFF. Toggle it with SIGUSR1.
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:46 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Supported filesystems: cramfs, minix, btrfs, ext2, ext3, ext4, xfs
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:46 rbd INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Now serving on unix:///csi-data/csi.sock...
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:47 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-39458128-8012-4d54-b109-ce1acaa9f119<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC GetPluginInfo
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:47 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-39458128-8012-4d54-b109-ce1acaa9f119<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC GetPluginInfo served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:47 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-356c4a6e-3d9d-4bba-a42e-039f1b00d183<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC NodeGetInfo
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:20:47 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-356c4a6e-3d9d-4bba-a42e-039f1b00d183<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC NodeGetInfo served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:22:48 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-41843054-b08e-4e4b-b581-6cf3f855293b<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:22:48 rbd INFO ember_csi.common <span style="color:#f92672">[</span>req-41843054-b08e-4e4b-b581-6cf3f855293b<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s</code></pre></div>
 <p>Check the connection information that the Ember-CSI <em>node</em> services are storing in Kubernetes CRD objects to be used by the <em>controller</em> to export and map volumes to them:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl get keyvalue
-NAME                     AGE
-ember-csi.io.node0       20m
-ember-csi.io.node1       20m
-rbd.ember-csi.io.node0   18m
-rbd.ember-csi.io.node1   18m
+NAME                                       AGE
+ember-csi.io.controller.master.probe       21m
+ember-csi.io.node.node0.probe              17m
+ember-csi.io.node.node1.probe              17m
+ember-csi.io.node0                         20m
+ember-csi.io.node1                         20m
+rbd.ember-csi.io.controller.master.probe   17m
+rbd.ember-csi.io.node.node0.probe          15m
+rbd.ember-csi.io.node.node1.probe          15m
+rbd.ember-csi.io.node0                     18m
+rbd.ember-csi.io.node1                     18m
 
 
 <span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl describe keyvalue
@@ -569,36 +555,36 @@ Events:                &lt;none&gt;</code></pre></div>
 pod/my-csi-app created</code></pre></div>
 <p>Tail the CSI <em>controller</em> plugin logs to see that the plugin exports the volume:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl logs csi-controller-0 -fc csi-driver
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Ember CSI v0.0.2 with <span style="color:#ae81ff">30</span> workers <span style="color:#f92672">(</span>cinder: v1.0.0.dev16644, CSI spec: v1.0.0<span style="color:#f92672">)</span>
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:17:03 default INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Ember CSI v0.0.2 with <span style="color:#ae81ff">30</span> workers <span style="color:#f92672">(</span>CSI spec: v1.0.0, cinderlib: v0.3.10.dev4, cinder: v13.1.0.dev902<span style="color:#f92672">)</span>
 
 
 <span style="color:#f92672">[</span> . . .<span style="color:#f92672">]</span>
 
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:52:49 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287036904<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:52:49 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287036904<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:29 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287037024<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC ControllerPublishVolume 540c5a37-ce98-4b47-83f7-10c54a4777b9
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:31 INFO ember_csi.common <span style="color:#f92672">[</span>req-140148287037024<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC ControllerPublishVolume served in 2s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:52:49 default INFO ember_csi.common <span style="color:#f92672">[</span>req-d135903b-f89a-4030-a085-5aa0ba3be2be<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:52:49 default INFO ember_csi.common <span style="color:#f92672">[</span>req-d135903b-f89a-4030-a085-5aa0ba3be2be<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:29 default INFO ember_csi.common <span style="color:#f92672">[</span>req-b5388936-239c-4285-896b-29a9e764caa7<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC ControllerPublishVolume 540c5a37-ce98-4b47-83f7-10c54a4777b9
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:31 default INFO ember_csi.common <span style="color:#f92672">[</span>req-b5388936-239c-4285-896b-29a9e764caa7<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC ControllerPublishVolume served in 2s
 ^C</code></pre></div>
 <p>Tail the CSI <em>node</em> plugin logs to see that the plugin actually attaches the volume to the container:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl logs csi-node-qf4ld -fc csi-driver
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Ember CSI v0.0.2 with <span style="color:#ae81ff">30</span> workers <span style="color:#f92672">(</span>cinder: v1.0.0.dev16644, CSI spec: v1.0.0<span style="color:#f92672">)</span>
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:18:46 INFO ember_csi.ember_csi <span style="color:#f92672">[</span>-<span style="color:#f92672">]</span> Ember CSI v0.0.2 with <span style="color:#ae81ff">30</span> workers <span style="color:#f92672">(</span>CSI spec: v1.0.0, cinderlib: v0.3.10.dev4, cinder: v13.1.0.dev902<span style="color:#f92672">)</span>
 
 <span style="color:#f92672">[</span> . . . <span style="color:#f92672">]</span>
 
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:44 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458012850128<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:44 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458012850128<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:45 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458012850248<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC NodeGetCapabilities
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:45 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458012850248<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC NodeGetCapabilities served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:45 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458012850368<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC NodeStageVolume 540c5a37-ce98-4b47-83f7-10c54a4777b9
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:47 WARNING os_brick.initiator.connectors.iscsi <span style="color:#f92672">[</span>req-140458012850368<span style="color:#f92672">]</span> iscsiadm stderr output when getting sessions: iscsiadm: No active sessions.
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:44 default INFO ember_csi.common <span style="color:#f92672">[</span>req-c9ed9f88-920a-432c-9bb3-d8562d21fadf<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:44 default INFO ember_csi.common <span style="color:#f92672">[</span>req-c9ed9f88-920a-432c-9bb3-d8562d21fadf<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:45 default INFO ember_csi.common <span style="color:#f92672">[</span>req-030e7f15-8f75-49d4-8cc6-3e7ec84698a3<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC NodeGetCapabilities
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:45 default INFO ember_csi.common <span style="color:#f92672">[</span>req-030e7f15-8f75-49d4-8cc6-3e7ec84698a3<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC NodeGetCapabilities served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:45 default INFO ember_csi.common <span style="color:#f92672">[</span>req-62b267b9-fcf7-48d1-a450-97519952af1c<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC NodeStageVolume 540c5a37-ce98-4b47-83f7-10c54a4777b9
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:47 default WARNING os_brick.initiator.connectors.iscsi <span style="color:#f92672">[</span>req-62b267b9-fcf7-48d1-a450-97519952af1c<span style="color:#f92672">]</span> iscsiadm stderr output when getting sessions: iscsiadm: No active sessions.
 
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:50 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458012850368<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC NodeStageVolume served in 5s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:50 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458012850488<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC NodeGetCapabilities
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:50 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458012850488<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC NodeGetCapabilities served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:50 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458012850248<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC NodePublishVolume 540c5a37-ce98-4b47-83f7-10c54a4777b9
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:50 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458012850248<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC NodePublishVolume served in 0s
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:55:05 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458012850608<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
-<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:55:05 INFO ember_csi.common <span style="color:#f92672">[</span>req-140458012850608<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:50 default INFO ember_csi.common <span style="color:#f92672">[</span>req-62b267b9-fcf7-48d1-a450-97519952af1c<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC NodeStageVolume served in 5s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:50 default INFO ember_csi.common <span style="color:#f92672">[</span>req-8414718e-6f5a-4eed-84f0-29cbfca3657e<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC NodeGetCapabilities
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:50 default INFO ember_csi.common <span style="color:#f92672">[</span>req-8414718e-6f5a-4eed-84f0-29cbfca3657e<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC NodeGetCapabilities served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:50 default INFO ember_csi.common <span style="color:#f92672">[</span>req-ce8f5d78-b07b-45d0-9c4e-8c89defd5223<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC NodePublishVolume 540c5a37-ce98-4b47-83f7-10c54a4777b9
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:53:50 default INFO ember_csi.common <span style="color:#f92672">[</span>req-ce8f5d78-b07b-45d0-9c4e-8c89defd5223<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC NodePublishVolume served in 0s
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:55:05 default INFO ember_csi.common <span style="color:#f92672">[</span>req-ba73aa46-6bb9-4b27-974a-aa2fa160b8ff<span style="color:#f92672">]</span> <span style="color:#f92672">=</span>&gt; GRPC Probe
+<span style="color:#ae81ff">2019</span>-02-14 <span style="color:#ae81ff">14</span>:55:05 default INFO ember_csi.common <span style="color:#f92672">[</span>req-ba73aa46-6bb9-4b27-974a-aa2fa160b8ff<span style="color:#f92672">]</span> &lt;<span style="color:#f92672">=</span> GRPC Probe served in 0s
 ^C</code></pre></div>
 <p>Check that the pod has been successfully created and that we have the Kubernetes <code>VolumeAttachment</code> object:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl get pod my-csi-app
@@ -712,13 +698,73 @@ csi-node-rbd-mrxwc   <span style="color:#ae81ff">3</span>/3     Running   <span 
 csi-rbd-0            <span style="color:#ae81ff">7</span>/7     Running   <span style="color:#ae81ff">1</span>          43m
 my-csi-app           <span style="color:#ae81ff">1</span>/1     Running   <span style="color:#ae81ff">0</span>          10m
 my-csi-app-2         <span style="color:#ae81ff">1</span>/1     Running   <span style="color:#ae81ff">0</span>          55s</code></pre></div>
-<p>We can now all these same steps with the RBD backend that, according to the topology we&rsquo;ve defined, can be accessed from all of our worker nodes:</p>
+<p>Since Ember-CSI also supports raw block volumes we&rsquo;ll create one:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl create -f kubeyml/lvm/10-pvc-block.yml
+persistentvolumeclaim/csi-block-pvc created</code></pre></div>
+<p>Now we confirm that the PVC has the <code>VolumeMode</code> set to <code>Block</code>:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl describe pvc csi-block-pvc
+Name:          csi-block-pvc
+Namespace:     default
+StorageClass:  csi-sc
+Status:        Bound
+Volume:        pvc-1bc1442e-3f44-11e9-93df-525400ba8dbe
+Labels:        &lt;none&gt;
+Annotations:   pv.kubernetes.io/bind-completed: yes
+               pv.kubernetes.io/bound-by-controller: yes
+               volume.beta.kubernetes.io/storage-provisioner: ember-csi.io
+Finalizers:    <span style="color:#f92672">[</span>kubernetes.io/pvc-protection<span style="color:#f92672">]</span>
+Capacity:      3Gi
+Access Modes:  RWO
+VolumeMode:    Block
+Events:
+  Type       Reason                 Age   From                                                      Message
+  ----       ------                 ----  ----                                                      -------
+  Normal     ExternalProvisioning   42s   persistentvolume-controller                               waiting <span style="color:#66d9ef">for</span> a volume to be created, either by external provisioner <span style="color:#e6db74">&#34;ember-csi.io&#34;</span> or manually created by system administrator
+  Normal     Provisioning           42s   ember-csi.io_master_3905aa08-3f42-11e9-82e2-525400ba8dbe  External provisioner is provisioning volume <span style="color:#66d9ef">for</span> claim <span style="color:#e6db74">&#34;default/csi-block-pvc&#34;</span>
+  Normal     ProvisioningSucceeded  41s   ember-csi.io_master_3905aa08-3f42-11e9-82e2-525400ba8dbe  Successfully provisioned volume pvc-1bc1442e-3f44-11e9-93df-525400ba8dbe
+Mounted By:  &lt;none&gt;</code></pre></div>
+<p>And with the name of the Volume we can see that the PV is also <code>Block</code>:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ k describe pv pvc-1bc1442e-3f44-11e9-93df-525400ba8dbe
+Name:              pvc-1bc1442e-3f44-11e9-93df-525400ba8dbe
+Labels:            &lt;none&gt;
+Annotations:       pv.kubernetes.io/provisioned-by: ember-csi.io
+Finalizers:        <span style="color:#f92672">[</span>kubernetes.io/pv-protection<span style="color:#f92672">]</span>
+StorageClass:      csi-sc
+Status:            Bound
+Claim:             default/csi-block-pvc
+Reclaim Policy:    Delete
+Access Modes:      RWO
+VolumeMode:        Block
+Capacity:          3Gi
+Node Affinity:
+  Required Terms:
+    Term <span style="color:#ae81ff">0</span>:        iscsi in <span style="color:#f92672">[</span>true<span style="color:#f92672">]</span>
+Message:
+Source:
+    Type:              CSI <span style="color:#f92672">(</span>a Container Storage Interface <span style="color:#f92672">(</span>CSI<span style="color:#f92672">)</span> volume source<span style="color:#f92672">)</span>
+    Driver:            ember-csi.io
+    VolumeHandle:      684a33bf-da59-4b60-b986-7203281e5a3c
+    ReadOnly:          false
+    VolumeAttributes:      storage.kubernetes.io/csiProvisionerIdentity<span style="color:#f92672">=</span><span style="color:#ae81ff">1551788866849</span>-8081-ember-csi.io
+Events:                &lt;none&gt;</code></pre></div>
+<p>It&rsquo;s time to use this raw block volume on a container:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl create -f kubeyml/lvm/11-app-block.yml
+pod/my-csi-block-app created</code></pre></div>
+<p>And now see that the raw volume is there:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl get pod my-csi-block-app
+NAME               READY   STATUS    RESTARTS   AGE
+my-csi-block-app   <span style="color:#ae81ff">1</span>/1     Running   <span style="color:#ae81ff">0</span>          74s
+
+<span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl -it exec my-csi-block-app -- ls -la /dev/ember0
+brw-rw----    <span style="color:#ae81ff">1</span> root     disk        <span style="color:#ae81ff">8</span>,  <span style="color:#ae81ff">32</span> Mar  <span style="color:#ae81ff">5</span> <span style="color:#ae81ff">12</span>:47 /dev/ember0</code></pre></div>
+<p>We can now repeat all these same steps with the RBD backend that, according to the topology we&rsquo;ve defined, can be accessed from all of our worker nodes:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl create -f kubeyml/rbd/05-pvc.yml
 persistentvolumeclaim/csi-rbd created
 
 
 <span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl get pv
 NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                   STORAGECLASS   REASON   AGE
+pvc-1bc1442e-3f44-11e9-93df-525400ba8dbe   3Gi        RWO            Delete           Bound    default/csi-block-pvc   csi-sc                  1m
 pvc-7537f440-3069-11e9-aed5-5254002dbb88   1Gi        RWO            Delete           Bound    default/vol-from-snap   csi-sc                  2m59s
 pvc-7db8685b-3066-11e9-aed5-5254002dbb88   1Gi        RWO            Delete           Bound    default/csi-pvc         csi-sc                  24m
 pvc-ddf984b7-3069-11e9-aed5-5254002dbb88   2Gi        RWO            Delete           Bound    default/csi-rbd         csi-rbd                 3s
@@ -741,38 +787,48 @@ NAME                                   AGE
 <span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl create -f kubeyml/rbd/08-restore-snapshot.yml
 persistentvolumeclaim/vol-from-snap-rbd created
 
+<span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl create -f kubeyml/rbd/10-pvc-block.yml
+persistentvolumeclaim/csi-rbd-block created
 
-<span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kugetctl get pv
--bash: kugetctl: command not found
 <span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl get pv
 NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                       STORAGECLASS   REASON   AGE
 pvc-1117b711-306a-11e9-aed5-5254002dbb88   2Gi        RWO            Delete           Bound    default/vol-from-snap-rbd   csi-rbd                 11s
+pvc-1bc1442e-3f44-11e9-93df-525400ba8dbe   3Gi        RWO            Delete           Bound    default/csi-block-pvc       csi-sc                  2m32s
 pvc-7537f440-3069-11e9-aed5-5254002dbb88   1Gi        RWO            Delete           Bound    default/vol-from-snap       csi-sc                  4m31s
 pvc-7db8685b-3066-11e9-aed5-5254002dbb88   1Gi        RWO            Delete           Bound    default/csi-pvc             csi-sc                  25m
+pvc-ac9a3111-3f46-11e9-93df-525400ba8dbe   3Gi        RWO            Delete           Bound    default/csi-rbd-block       csi-rbd                 19s
 pvc-ddf984b7-3069-11e9-aed5-5254002dbb88   2Gi        RWO            Delete           Bound    default/csi-rbd             csi-rbd                 95s
-
 
 <span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl create -f kubeyml/rbd/09-app-from-snap-vol.yml
 pod/my-csi-app-rbd-2 created
 
+<span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl create -f kubeyml/rbd/11-app-block.yml
+pod/my-csi-block-app-rbd created
+
 <span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl get pod
-NAME                 READY   STATUS    RESTARTS   AGE
-csi-controller-0     <span style="color:#ae81ff">6</span>/6     Running   <span style="color:#ae81ff">0</span>          52m
-csi-node-0-jpdsg     <span style="color:#ae81ff">3</span>/3     Running   <span style="color:#ae81ff">1</span>          50m
-csi-node-qf4ld       <span style="color:#ae81ff">3</span>/3     Running   <span style="color:#ae81ff">1</span>          50m
-csi-node-rbd-k5dx5   <span style="color:#ae81ff">3</span>/3     Running   <span style="color:#ae81ff">0</span>          47m
-csi-node-rbd-mrxwc   <span style="color:#ae81ff">3</span>/3     Running   <span style="color:#ae81ff">0</span>          47m
-csi-rbd-0            <span style="color:#ae81ff">7</span>/7     Running   <span style="color:#ae81ff">1</span>          47m
-my-csi-app           <span style="color:#ae81ff">1</span>/1     Running   <span style="color:#ae81ff">0</span>          14m
-my-csi-app-2         <span style="color:#ae81ff">1</span>/1     Running   <span style="color:#ae81ff">0</span>          4m54s
-my-csi-app-rbd       <span style="color:#ae81ff">1</span>/1     Running   <span style="color:#ae81ff">0</span>          3m1s
-my-csi-app-rbd-2     <span style="color:#ae81ff">1</span>/1     Running   <span style="color:#ae81ff">0</span>          84s
+NAME                   READY   STATUS    RESTARTS   AGE
+csi-controller-0       <span style="color:#ae81ff">6</span>/6     Running   <span style="color:#ae81ff">0</span>          52m
+csi-node-0-jpdsg       <span style="color:#ae81ff">3</span>/3     Running   <span style="color:#ae81ff">1</span>          50m
+csi-node-qf4ld         <span style="color:#ae81ff">3</span>/3     Running   <span style="color:#ae81ff">1</span>          50m
+csi-node-rbd-k5dx5     <span style="color:#ae81ff">3</span>/3     Running   <span style="color:#ae81ff">0</span>          47m
+csi-node-rbd-mrxwc     <span style="color:#ae81ff">3</span>/3     Running   <span style="color:#ae81ff">0</span>          47m
+csi-rbd-0              <span style="color:#ae81ff">7</span>/7     Running   <span style="color:#ae81ff">1</span>          47m
+my-csi-app             <span style="color:#ae81ff">1</span>/1     Running   <span style="color:#ae81ff">0</span>          14m
+my-csi-app-2           <span style="color:#ae81ff">1</span>/1     Running   <span style="color:#ae81ff">0</span>          4m54s
+my-csi-app-rbd         <span style="color:#ae81ff">1</span>/1     Running   <span style="color:#ae81ff">0</span>          3m1s
+my-csi-app-rbd-2       <span style="color:#ae81ff">1</span>/1     Running   <span style="color:#ae81ff">0</span>          84s
+my-csi-block-app       <span style="color:#ae81ff">1</span>/1     Running   <span style="color:#ae81ff">0</span>          4m
+my-csi-block-app-rbd   <span style="color:#ae81ff">1</span>/1     Running   <span style="color:#ae81ff">0</span>          77s
 
 <span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl describe pod my-csi-app-rbd |grep Node:
 Node:               node0/192.168.10.100
 
 
 <span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl describe pod my-csi-app-rbd-2 |grep Node:
+Node:               node1/192.168.10.101
+
+
+<span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl describe pod my-csi-block-app-rbd |grep Node:
 Node:               node1/192.168.10.101</code></pre></div>
 <p>All the internal Ember-CSI metadata is grouped under the name <code>ember</code>, and we can get it all like this:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl get ember
@@ -782,21 +838,31 @@ snapshot.ember-csi.io/79fd2dff-7ba5-4e29-b4b4-64ee94e1c36d   4m
 
 NAME                                                           AGE
 connection.ember-csi.io/35c43fc6-65db-4ce5-b328-830c86eba08a   6m
+connection.ember-csi.io/489259c2-116e-4888-b48f-cd7e1e27b2e4   8m
 connection.ember-csi.io/63394bf4-9153-4c9c-9e76-aa73d5b80b48   16m
 connection.ember-csi.io/a96e8e33-f14e-46e6-8732-67efae593539   5m
+connection.ember-csi.io/cf2800e7-018f-44d7-8880-c971a74d87ef   3m
 connection.ember-csi.io/eeb85633-a554-4b2d-aabe-a8bf5c3b7f41   3m
 
 NAME                                                       AGE
+volume.ember-csi.io/20c798a2-ba98-4479-9167-6ee253b7601e   12m
 volume.ember-csi.io/540c5a37-ce98-4b47-83f7-10c54a4777b9   29m
+volume.ember-csi.io/684a33bf-da59-4b60-b986-7203281e5a3c   4m
 volume.ember-csi.io/9e1e7f95-2007-4775-92a8-896881b22618   3m
 volume.ember-csi.io/f91e729e-e9d1-4a28-89f8-293423047eea   5m
 volume.ember-csi.io/faa72ced-43ef-45ac-9bfe-5781e15f75da   8m
 
-NAME                                           AGE
-keyvalue.ember-csi.io/ember-csi.io.node0       51m
-keyvalue.ember-csi.io/ember-csi.io.node1       51m
-keyvalue.ember-csi.io/rbd.ember-csi.io.node0   49m
-keyvalue.ember-csi.io/rbd.ember-csi.io.node1   49m</code></pre></div>
+NAME                                                             AGE
+keyvalue.ember-csi.io/ember-csi.io.controller.master.probe       52m
+keyvalue.ember-csi.io/ember-csi.io.node.node0.probe              48m
+keyvalue.ember-csi.io/ember-csi.io.node.node1.probe              48m
+keyvalue.ember-csi.io/ember-csi.io.node0                         51m
+keyvalue.ember-csi.io/ember-csi.io.node1                         51m
+keyvalue.ember-csi.io/rbd.ember-csi.io.controller.master.probe   48m
+keyvalue.ember-csi.io/rbd.ember-csi.io.node.node0.probe          46m
+keyvalue.ember-csi.io/rbd.ember-csi.io.node.node1.probe          46m
+keyvalue.ember-csi.io/rbd.ember-csi.io.node0                     49m
+keyvalue.ember-csi.io/rbd.ember-csi.io.node1                     49m</code></pre></div>
 <p>Remember that, for debugging purposes, besides the logs, you can also get a Python console on GRPC requests by starting the debug mode, then executing bash into the node, installing <code>nmap-ncat</code>, and when a request is made connecting to port 4444.  For example, to toggle debug mode on the controller node:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl exec csi-controller-0 -c csi-driver -- kill -USR1 <span style="color:#ae81ff">1</span></code></pre></div>
 </article>
