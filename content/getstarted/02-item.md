@@ -13,9 +13,7 @@ weight = 2
 +++
 [KubeVirt](https://kubevirt.io) is a virtual machine management add-on for [Kubernetes](https://kubernetes.io). It allows users to run VMs alongside containers in the their Kubernetes or [OpenShift](https://www.openshift.com) clusters. This document describes a quick way to deploy either Kubernetes or OpenShift, KubeVirt and [Ember-CSI](https://ember-csi.io).
 
-The [Ember-CSI-Kubevirt](https://github.com/embercsi/ember-csi-kubevirt.git) repository provides a wrapper on the normal KubeVirt workflow and it aims to provide a seamless integration with it while taking care of the Ember-CSI deployment.
-
-To use Ember-CSI plugin on KubeVirt, we will utilize the [Ember-CSI-KubeVirt repository](https://github.com/embercsi/ember-csi-kubevirt.git) which can deploy an all-in-one demo deployment. The all-in-one demo deployment comprises of either Kubernetes/OpenShift with KubeVirt, an ephemeral Ceph environment and finally an Ember-CSI deployment configured with the previously deployed ephemeral Ceph plugin.
+The [Ember-CSI-Kubevirt](https://github.com/embercsi/ember-csi-kubevirt.git) repository provides a wrapper on the normal KubeVirt workflow and it aims to provide a seamless integration with it while taking care of the Ember-CSI deployment.i The all-in-one demo deployment created by the Ember-CSI-Kubevirt repository comprises of either Kubernetes or OpenShift with KubeVirt, an ephemeral Ceph cluster and finally an Ember-CSI deployment configured with the previously deployed ephemeral Ceph cluster.
 
 ### Requirements
 
@@ -91,9 +89,23 @@ kubevirt.kubevirt.io/kubevirt created
 $
 ```
 
-At this point, we have a fully functioning OpenShift cluster with KubeVirt along side Ember-CSI backed by a Ceph backend. We have also created a namespace/project called `sample-projct` which we will use to deploy a VM using KubeVirt.
+At this point, we have a fully functioning OpenShift cluster with KubeVirt along side Ember-CSI backed by a Ceph backend. We have also created a namespace/project called `sample-project` which we will use to deploy a VM using KubeVirt. Before we proceed further, lets inspect to see whether the previous step has successfully created a PVC for us. 
 
-Creating a virtual machine
+```shell
+$ source tools/env.sh
+$ ./cluster/kubectl.sh -n sample-project get pvc
+NAME                STATUS    VOLUME                 CAPACITY   ACCESS MODES   STORAGECLASS                    AGE
+ember-csi-aio-pvc   Bound     pvc-969ef1974a6a11e9   5Gi        RWO            io.ember-csi.external-ceph-sc   55s
+$
+```
+
+If the `status` above says `BOUND`, we can proceed to create a VM.
+
+
+### Creating and Managing a Virtual Machine
+
+Lets begin by creating a VM template.
+
 ```shell
 $ ./cluster/kubectl.sh -n sample-project apply -f https://raw.githubusercontent.com/kubevirt/demo/master/manifests/vm.yaml
 virtualmachine.kubevirt.io/testvm created
