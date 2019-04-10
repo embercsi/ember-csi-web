@@ -79,7 +79,7 @@ Bringing machine 'node1' up with 'libvirt' provider...
 [ . . . ]
 
 PLAY RECAP *********************************************************************
-master                     : ok=64   changed=52   unreachable=0    failed=0
+master                     : ok=69   changed=57   unreachable=0    failed=0
 node0                      : ok=22   changed=20   unreachable=0    failed=0
 node1                      : ok=22   changed=20   unreachable=0    failed=0
 ```
@@ -101,50 +101,10 @@ Bringing machine 'node1' up with 'libvirt' provider...
 [ . . . ]
 
 PLAY RECAP *********************************************************************
-master                     : ok=64   changed=52   unreachable=0    failed=0
+master                     : ok=69   changed=57   unreachable=0    failed=0
 node0                      : ok=22   changed=20   unreachable=0    failed=0
 node1                      : ok=22   changed=20   unreachable=0    failed=0
 ```
-
-
-### Development Setup
-
-If we are doing development, or if we want to test our own Ember-CSI images, we can use our own registry.  This would be the case if we have added a driver dependency,
-
-Here's an example of what we would do to test a 3PAR iSCSI backend, which has dependencies that are not currently included in any of the Ember-CSI images:
-
-First we would create our docker image, with a `Dockerfile` such as this:
-
-```shell
-FROM embercsi/ember-csi:master
-RUN pip install 'python-3parclient>=4.1.0'
-```
-
-Then we build and tag the image with our IP address:
-
-```shell
-# We need to know our IP address
-$ MY_IP=$(bash -c 'a="`hostname -I`"; s=($a); echo ${s[0]}')
-$ docker build -t $MY_IP/ember-csi:testing .
-```
-
-Now we run our own registry and publish our image:
-
-```shell
-$ docker run -d -p 5000:5000 --name registry registry:2
-$ docker push -t $MY_IP:5000/ember-csi:testing
-```
-
-Then, we edit file `roles/common/files/daemon.json` and replace the IP with our own, so that docker can pull images from our insecure registry, and change the images we want to use:
-
-```shell
-$ sed -i "s/192.168.1.11:5000/$MY_IP:5000/" roles/common/files/daemon.json
-$ sed -i "s/embercsi\/ember-csi:master/$MY_IP:5000\/ember-csi:testing/" kubeyml/node.yml
-$ sed -i "s/embercsi\/ember-csi:master/$MY_IP:5000\/ember-csi:testing/" kubeyml/controller.yml
-```
-
-With that, we are now ready to use our own custom image when deploying Ember-CSI in this example, but since we wanted to use the 3PAR backend we have to change the configuration editing `kubeyml/controller.yml` and changing the value of the environmental vairiable `X_CSI_BACKEND_CONFIG` with our backend's configuration.
-
 
 ### Usage
 
@@ -174,7 +134,6 @@ Unless stated otherwise, all the following commands are run assuming we are in t
 We can check that the CSI *controller* services are running in master and that they have been registered in Kubernetes as `CSIDrivers.csi.storage.k8s.io` objects:
 
 ```shell
-[vagrant@master ~]$ kubectl get pod csi-controller-0 csi-rbd-0
 [vagrant@master ~]$ kubectl get pod csi-controller-0 csi-rbd-0
 NAME               READY   STATUS    RESTARTS   AGE
 csi-controller-0   6/6     Running   0          8m50s
