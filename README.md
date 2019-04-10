@@ -46,7 +46,14 @@ Press Ctrl+C to stop
 
 Now the pages will be served on `localhost:1313` and any changes we do to the source files will be rendered automatically.
 
-When we are ready to generate the website and publish it we have to do:
+Before we can generate the new website we have to sync our `gh-pages` branch with upstream.  Assuming we have called the `git@github.com:embercsi/ember-csi-web.git` repository `upstream` we would do:
+
+```
+$ cd public
+$ git reset --hard upstream/gh-pages
+```
+
+Now that our `gh-pages` branch is in sync with upstream, we are ready to generate a commit with the new website and publish it:
 
 ```
 $ make generate MSG='Add my cool new post'
