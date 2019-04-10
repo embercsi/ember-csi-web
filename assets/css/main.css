@@ -1908,12 +1908,27 @@
 
 				.box.post h3 {
 					margin-top: 0.8em;
+					border-bottom: 2px solid lightgrey;
 				}
 
-                .box.post code {
-                    font-family: "Courier New", Courier, monospace;
-                }
+				.box.post h4 {
+					margin-top: 0.5em;
+					text-decoration: underline;
+				}
 
+				.box.post code {
+					font-family: "Courier New", Courier, monospace;
+				}
+
+				.box.post ul {
+					list-style: disc inside;
+					margin-left: 1em;
+				}
+
+				.box.post ol {
+					list-style: decimal inside;
+					margin-left: 1em;
+				}
 				.box.post .highlight {
 					font-size: .9em;
                     margin-top: 0.4em;

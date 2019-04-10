@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on Ember CSI</title>
+    <link>/post/</link>
+    <description>Recent content in Posts on Ember CSI</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 10 Apr 2019 11:13:00 +0200</lastBuildDate>
+    
+	<atom:link href="/post/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Driver validation</title>
+      <link>/post/validation/</link>
+      <pubDate>Wed, 10 Apr 2019 11:13:00 +0200</pubDate>
+      
+      <guid>/post/validation/</guid>
+      <description>The Ember-CSI team is frequently asked about the supported backends and how to test Ember-CSI with a specific one. In some cases the answer is straightforward, in other cases it&amp;rsquo;s considerably more complex, so we thought it would be a good idea to write an article with all this knowledge, including a step by step guide on how we can validate that a backend works with Ember-CSI.
+For the final validation we will be using Ember-CSI&amp;rsquo;s Kubernetes example to deploy a 3 nodes Kubernetes cluster with 1 infrastructure node a 2 workload nodes.</description>
+    </item>
+    
+  </channel>
+</rss>

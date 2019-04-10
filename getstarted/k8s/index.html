@@ -116,7 +116,7 @@ Bringing machine <span style="color:#e6db74">&#39;node1&#39;</span> up with <spa
 <span style="color:#f92672">[</span> . . . <span style="color:#f92672">]</span>
 
 PLAY RECAP *********************************************************************
-master                     : ok<span style="color:#f92672">=</span><span style="color:#ae81ff">64</span>   changed<span style="color:#f92672">=</span><span style="color:#ae81ff">52</span>   unreachable<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>    failed<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>
+master                     : ok<span style="color:#f92672">=</span><span style="color:#ae81ff">69</span>   changed<span style="color:#f92672">=</span><span style="color:#ae81ff">57</span>   unreachable<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>    failed<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>
 node0                      : ok<span style="color:#f92672">=</span><span style="color:#ae81ff">22</span>   changed<span style="color:#f92672">=</span><span style="color:#ae81ff">20</span>   unreachable<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>    failed<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>
 node1                      : ok<span style="color:#f92672">=</span><span style="color:#ae81ff">22</span>   changed<span style="color:#f92672">=</span><span style="color:#ae81ff">20</span>   unreachable<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>    failed<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span></code></pre></div>
 <p>We may want to run the VMs on a remote system.  We can do this using the <code>LIBVIRT_HOST</code> and <code>LIBVIRT_USER</code> environmental variables before calling the <code>up.sh</code> script.</p>
@@ -134,31 +134,9 @@ Bringing machine <span style="color:#e6db74">&#39;node1&#39;</span> up with <spa
 <span style="color:#f92672">[</span> . . . <span style="color:#f92672">]</span>
 
 PLAY RECAP *********************************************************************
-master                     : ok<span style="color:#f92672">=</span><span style="color:#ae81ff">64</span>   changed<span style="color:#f92672">=</span><span style="color:#ae81ff">52</span>   unreachable<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>    failed<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>
+master                     : ok<span style="color:#f92672">=</span><span style="color:#ae81ff">69</span>   changed<span style="color:#f92672">=</span><span style="color:#ae81ff">57</span>   unreachable<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>    failed<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>
 node0                      : ok<span style="color:#f92672">=</span><span style="color:#ae81ff">22</span>   changed<span style="color:#f92672">=</span><span style="color:#ae81ff">20</span>   unreachable<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>    failed<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>
 node1                      : ok<span style="color:#f92672">=</span><span style="color:#ae81ff">22</span>   changed<span style="color:#f92672">=</span><span style="color:#ae81ff">20</span>   unreachable<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>    failed<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span></code></pre></div>
-<h3 id="development-setup">Development Setup</h3>
-
-<p>If we are doing development, or if we want to test our own Ember-CSI images, we can use our own registry.  This would be the case if we have added a driver dependency,</p>
-
-<p>Here&rsquo;s an example of what we would do to test a 3PAR iSCSI backend, which has dependencies that are not currently included in any of the Ember-CSI images:</p>
-
-<p>First we would create our docker image, with a <code>Dockerfile</code> such as this:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">FROM embercsi/ember-csi:master
-RUN pip install <span style="color:#e6db74">&#39;python-3parclient&gt;=4.1.0&#39;</span></code></pre></div>
-<p>Then we build and tag the image with our IP address:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#75715e"># We need to know our IP address
-</span><span style="color:#75715e"></span>$ MY_IP<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>bash -c <span style="color:#e6db74">&#39;a=&#34;`hostname -I`&#34;; s=($a); echo ${s[0]}&#39;</span><span style="color:#66d9ef">)</span>
-$ docker build -t $MY_IP/ember-csi:testing .</code></pre></div>
-<p>Now we run our own registry and publish our image:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ docker run -d -p <span style="color:#ae81ff">5000</span>:5000 --name registry registry:2
-$ docker push -t $MY_IP:5000/ember-csi:testing</code></pre></div>
-<p>Then, we edit file <code>roles/common/files/daemon.json</code> and replace the IP with our own, so that docker can pull images from our insecure registry, and change the images we want to use:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ sed -i <span style="color:#e6db74">&#34;s/192.168.1.11:5000/</span>$MY_IP<span style="color:#e6db74">:5000/&#34;</span> roles/common/files/daemon.json
-$ sed -i <span style="color:#e6db74">&#34;s/embercsi\/ember-csi:master/</span>$MY_IP<span style="color:#e6db74">:5000\/ember-csi:testing/&#34;</span> kubeyml/node.yml
-$ sed -i <span style="color:#e6db74">&#34;s/embercsi\/ember-csi:master/</span>$MY_IP<span style="color:#e6db74">:5000\/ember-csi:testing/&#34;</span> kubeyml/controller.yml</code></pre></div>
-<p>With that, we are now ready to use our own custom image when deploying Ember-CSI in this example, but since we wanted to use the 3PAR backend we have to change the configuration editing <code>kubeyml/controller.yml</code> and changing the value of the environmental vairiable <code>X_CSI_BACKEND_CONFIG</code> with our backend&rsquo;s configuration.</p>
-
 <h3 id="usage">Usage</h3>
 
 <p>After the setup is completed the Kubernetes configuration is copied from the master node to the host, so we can use it locally as follows:</p>
@@ -179,7 +157,6 @@ node1    Ready    &lt;none&gt;   10m   v1.13.2</code></pre></div>
 
 <p>We can check that the CSI <em>controller</em> services are running in master and that they have been registered in Kubernetes as <code>CSIDrivers.csi.storage.k8s.io</code> objects:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl get pod csi-controller-0 csi-rbd-0
-<span style="color:#f92672">[</span>vagrant@master ~<span style="color:#f92672">]</span>$ kubectl get pod csi-controller-0 csi-rbd-0
 NAME               READY   STATUS    RESTARTS   AGE
 csi-controller-0   <span style="color:#ae81ff">6</span>/6     Running   <span style="color:#ae81ff">0</span>          8m50s
 NAME               READY   STATUS    RESTARTS   AGE
