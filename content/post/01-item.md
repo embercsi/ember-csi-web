@@ -8,6 +8,7 @@ author = "Gorka Eguileor"
 draft = false
 hidesidebar = true
 publishDate=2019-04-10T11:13:00+02:00
+lastmod=2019-04-24T18:14:00+02:00
 +++
 
 The Ember-CSI team is frequently asked about the supported backends and how to test Ember-CSI with a specific one.  In some cases the answer is straightforward, in other cases it's considerably more complex, so we thought it would be a good idea to write an article with all this knowledge, including a step by step guide on how we can validate that a backend works with Ember-CSI.
@@ -16,7 +17,7 @@ For the final validation we will be using [Ember-CSI's Kubernetes example] to de
 
 ### Supported drivers
 
-The Ember-CSI team has tested the plugin with multiple backends, such as:
+Ember-CSI should support most of the drivers listed in the [Cinder drivers page](https://docs.openstack.org/cinder/latest/configuration/block-storage/volume-drivers.html), but the Ember-CSI team has only tested the plugin with a limited set of backends:
 
 - LVM (iSCSI)
 - Ceph (RBD)
@@ -25,7 +26,7 @@ The Ember-CSI team has tested the plugin with multiple backends, such as:
 - QNAP TS-831X (iSCSI)
 - NetApp (iSCSI)
 
-Other people have confirmed compatibility of the storage driver library used by Ember-CSI with additional backends, such as:
+We have also received confirmation from other people that indicates that there's also compatibilty with other backends, such as:
 
 - NetApp SolidFire (iSCSI)
 - Dell EMC VMAX (iSCSI)
