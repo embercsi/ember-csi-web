@@ -8,7 +8,7 @@ author = "Kiran Thyagaraja"
 draft = false
 hidesidebar = true
 publishDate=2018-08-02T19:05:52+02:00
-lastmod=2019-05-21T11:30:57-06:00
+lastmod=2019-05-30T14:30:57-05:00
 weight = 2
 +++
 [KubeVirt](https://kubevirt.io) is a virtual machine management add-on for [Kubernetes](https://kubernetes.io). It allows users to run VMs alongside containers in the their Kubernetes or [OpenShift](https://www.openshift.com) clusters. This document describes a quick way to deploy either Kubernetes or OpenShift, KubeVirt and [Ember-CSI](https://ember-csi.io).
@@ -40,6 +40,13 @@ Then we have to make sure the `libvirtd` and `docker` daemons are up and running
 $ sudo systemctl start libvirtd docker
 $ docker ps
 CONTAINER ID        IMAGE                    COMMAND                  CREATED             STATUS              PORTS                NAMES 
+$
+```
+
+We also need to change the permissions of the `docker.sock` file in CentOS, Fedora, and RHEL after the docker service is running.
+
+```shell
+$ sudo chown root:docker /var/run/docker.sock
 $
 ```
 
