@@ -22,14 +22,14 @@ This article covers how to run Ember-CSI as a CSI v1 plugin deployed in Kubernet
     </item>
     
     <item>
-      <title>KubeVirt and Ember CSI</title>
+      <title>KubeVirt and Ember-CSI</title>
       <link>/getstarted/kubevirt/</link>
       <pubDate>Thu, 02 Aug 2018 19:05:52 +0200</pubDate>
       
       <guid>/getstarted/kubevirt/</guid>
-      <description>To use the Ember-CSI plugin on Kubevirt we need to make changes to our deployment.
-The easiest way to make the changes is to copy this kubevirt directory into a directory of the kubevirt repository, and run the csi_up.sh script from there after the cluster is up and running.
-For now the example only supports single node deployments, and for convenience we are using a pod instead of a StatefulSet and DaemonSets and the permissions are too broad.</description>
+      <description>KubeVirt is a virtual machine management add-on for Kubernetes. It allows users to run VMs alongside containers in the their Kubernetes or OpenShift clusters. This document describes a quick way to deploy either Kubernetes or OpenShift, KubeVirt and Ember-CSI.
+The Ember-CSI-KubeVirt repository provides a seamless wrapper integrating the deployments of OpenShift or Kubernetes, KubeVirt, Containerized Data Importer (CDI), Ember-CSI and a Ceph demo cluster.
+Ember-CSI should always be deployed using the Ember-CSI-Operator, like we do here.</description>
     </item>
     
   </channel>

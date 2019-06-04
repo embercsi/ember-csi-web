@@ -56,48 +56,256 @@
 <article class="box post">
     <a href="#" class="image featured"><img src="/images/02-getstarted.jpg" alt="" /></a>
     <header>
-        <h2>KubeVirt and Ember CSI</h2>
+        <h2>KubeVirt and Ember-CSI</h2>
         
-        <p>August 2, 2018</p>
+        <p>August 2, 2018 - last updated June 3, 2019</p>
         
     </header>
-    <p>To use the Ember-CSI plugin on Kubevirt we need to make changes to our deployment.</p>
+    
 
-<p>The easiest way to make the changes is to copy this kubevirt directory into a directory of the kubevirt repository, and run the <code>csi_up.sh</code> script from there after the cluster is up and running.</p>
+<p><a href="https://kubevirt.io">KubeVirt</a> is a virtual machine management add-on for <a href="https://kubernetes.io">Kubernetes</a>. It allows users to run VMs alongside containers in the their Kubernetes or <a href="https://www.openshift.com">OpenShift</a> clusters. This document describes a quick way to deploy either Kubernetes or OpenShift, KubeVirt and <a href="https://ember-csi.io">Ember-CSI</a>.</p>
 
-<p>For now the example only supports single node deployments, and for convenience we are using a pod instead of a StatefulSet and DaemonSets and the permissions are too broad.</p>
+<p>The <a href="https://github.com/embercsi/ember-csi-kubevirt">Ember-CSI-KubeVirt</a> repository provides a seamless wrapper integrating the deployments of OpenShift or Kubernetes, KubeVirt, <a href="https://github.com/kubevirt/containerized-data-importer">Containerized Data Importer (CDI)</a>, Ember-CSI and a Ceph demo cluster.</p>
 
-<p>Given the following assumptions:</p>
+<p>Ember-CSI should always be deployed using the <a href="https://github.com/embercsi/ember-csi-operator">Ember-CSI-Operator</a>, like we do here. The operator ensures that all of Ember-CSI&rsquo;s Kubernetes objects such as StatefulSets, DaemonSets, StorageClasses, RBAC rules, etc. are properly configured and running. The Ceph-demo cluster deploys an empty directory backed Ceph cluster within a namespace called <code>ceph-demo</code>. We leverage KubeVirt&rsquo;s repository scripts that provide an easy way to deploy OpenShift or Kubernetes using the <code>make cluster-up</code> scripts. In addition, CDI is deployed, which provides a declarative way to build Virtual Machine Disks on PVCs for Kubevirt VMs. Finally the Ember-CSI-KubeVirt repository ties all these deployments together into an easy <code>make all</code> command.</p>
 
-<ul>
-<li>This <code>kubevirt</code> directory is in <code>$cl_example</code>.</li>
-<li>We have modified <code>X_CSI_BACKEND_CONFIG</code> environmental variable in the <code>csi.yml</code> (example is for XtremIO).</li>
-<li>Our current working directory is <code>kubevirt</code> repository&rsquo;s root directory.</li>
-<li>We haven&rsquo;t created a kubevirt cluster yet.</li>
-</ul>
+<h3 id="requirements">Requirements</h3>
 
-<p>The following commands will create the cluster, make changes to the cluster to support CSI plugins, deploy the CSI plugin, create a PVC, and an app that uses the PVC:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">make cluster-up
-make cluster-sync
+<p>This demo requires QEMU-KVM, libvirt and Docker installed in the system. In the case where this demo is being deployed in a VM, nested virtualization support must be enabled before proceeding. Nested virtualization for Red Hat/CentOS/Fedora can be enabled using one of the guides <a href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/virtualization_deployment_and_administration_guide/nested_virt">here</a> or <a href="https://www.linuxtechi.com/enable-nested-virtualization-kvm-centos-7-rhel-7/">here</a>.</p>
 
-<span style="color:#75715e"># Modify the cluster for CSI
-</span><span style="color:#75715e"></span>csi/csi_up.sh
+<p>In Fedora/RHEL/CentOS:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ sudo yum -y install qemu-kvm libvirt docker </code></pre></div>
+<p>Add <code>docker</code> group and add your username into the <code>docker</code> group.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ sudo groupadd docker
+$ sudo gpasswd -a $USER docker
+Adding user kiran to group docker
+$ newgrp docker</code></pre></div>
+<p>Then we have to make sure the <code>libvirtd</code> and <code>docker</code> daemons are up and running and that we can successfully use the <code>docker</code> command.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ sudo systemctl start libvirtd docker
+$ docker ps
+CONTAINER ID        IMAGE                    COMMAND                  CREATED             STATUS              PORTS                NAMES 
+$</code></pre></div>
+<p>We also need to change the permissions of the <code>docker.sock</code> file in CentOS, Fedora, and RHEL after the <code>docker</code> service is running.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ sudo chown root:docker /var/run/docker.sock
+$</code></pre></div>
+<h3 id="configuration">Configuration</h3>
 
-<span style="color:#75715e"># Setup RBAC
-</span><span style="color:#75715e"></span>cluster/kubectl.sh create -f csi/rbac.yml
+<p>The Ember-CSI-KubeVirt repo deploys OpenShift 3.11 as its default cluster. This can be customized by setting the <code>KUBEVIRT_PROVIDER</code> environment variable whose valid values can be obtained <a href="https://github.com/kubevirt/kubevirt/tree/master/cluster">here</a>. Note that the default value of <code>KUBEVIRT_PROVIDER</code> used in the Ember-CSI-KubeVirt repo is <code>os-3.11.0</code>.</p>
 
-<span style="color:#75715e"># Setup the CSI driver
-</span><span style="color:#75715e"></span>cluster/kubectl.sh create -f csi/csi.yml
+<h3 id="setup">Setup</h3>
 
-<span style="color:#75715e"># Create a PVC (creates a volume on the storage via the CSI plugin)
-</span><span style="color:#75715e"></span>cluster/kubectl.sh create -f csi/pvc.yml
+<p>First we need to clone the project and change into the repository&rsquo;s directory and deploy the cluster, which, by default, is OpenShift 3.11. Running <code>make all</code> deploys an OpenShift cluster along with KubeVirt, Ember-CSI and an ephemeral Ceph cluster.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ git clone https://github.com/embercsi/ember-csi-kubevirt.git
+$ cd ember-csi-kubevirt/
+$ make all
+git submodule init <span style="color:#f92672">&amp;&amp;</span> git submodule update
+ln -sf kubevirt/cluster <span style="color:#f92672">&amp;&amp;</span> ln -sf kubevirt/hack
+source ./tools/env.sh <span style="color:#f92672">&amp;&amp;</span> ./cluster/up.sh
+Unable to find image <span style="color:#e6db74">&#39;kubevirtci/gocli@sha256:df958c060ca8d90701a1b592400b33852029979ad6d5c1d9b79683033704b690&#39;</span> locally
+Trying to pull repository docker.io/kubevirtci/gocli ... 
+sha256:df958c060ca8d90701a1b592400b33852029979ad6d5c1d9b79683033704b690: Pulling from docker.io/kubevirtci/gocli
+ca1df8c2ad92: Pull complete 
+132134b5fbe0: Pull complete 
+Digest: sha256:df958c060ca8d90701a1b592400b33852029979ad6d5c1d9b79683033704b690
+Status: Downloaded newer image <span style="color:#66d9ef">for</span> docker.io/kubevirtci/gocli@sha256:df958c060ca8d90701a1b592400b33852029979ad6d5c1d9b79683033704b690
 
-<span style="color:#75715e"># Create an APP that uses the created volume
-</span><span style="color:#75715e"></span>cluster/kubectl.sh create -f csi/app.yml</code></pre></div>
-<p>We can send GRPC commands to the CSI driver using the deployed csc container.</p>
+<span style="color:#f92672">[</span>. . .<span style="color:#f92672">]</span>
 
-<p>For example to list volumes you can do:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">cluster/kubectl.sh exec -c csc -it csi-xtremio-pod csc controller list-volumes</code></pre></div>
++ set -e
++ /usr/bin/oc create -f /tmp/local-volume.yaml
+storageclass.storage.k8s.io/local created
+configmap/local-storage-config created
+clusterrolebinding.rbac.authorization.k8s.io/local-storage-provisioner-pv-binding created
+clusterrole.rbac.authorization.k8s.io/local-storage-provisioner-node-clusterrole created
+clusterrolebinding.rbac.authorization.k8s.io/local-storage-provisioner-node-binding created
+role.rbac.authorization.k8s.io/local-storage-provisioner-jobs-role created
+rolebinding.rbac.authorization.k8s.io/local-storage-provisioner-jobs-rolebinding created
+serviceaccount/local-storage-admin created
+daemonset.extensions/local-volume-provisioner created
+Sending file modes: C0755 <span style="color:#ae81ff">120419488</span> oc
+Sending file modes: C0600 <span style="color:#ae81ff">5649</span> admin.kubeconfig
+Cluster <span style="color:#e6db74">&#34;node01:8443&#34;</span> set.
+Cluster <span style="color:#e6db74">&#34;node01:8443&#34;</span> set.
+
+<span style="color:#f92672">[</span>. . .<span style="color:#f92672">]</span>
+
+kubevirt.kubevirt.io/kubevirt created
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+<span style="color:#ae81ff">100</span>   <span style="color:#ae81ff">617</span>    <span style="color:#ae81ff">0</span>   <span style="color:#ae81ff">617</span>    <span style="color:#ae81ff">0</span>     <span style="color:#ae81ff">0</span>   <span style="color:#ae81ff">2497</span>      <span style="color:#ae81ff">0</span> --:--:-- --:--:-- --:--:--  <span style="color:#ae81ff">2497</span>
+<span style="color:#ae81ff">100</span> <span style="color:#ae81ff">35</span>.9M  <span style="color:#ae81ff">100</span> <span style="color:#ae81ff">35</span>.9M    <span style="color:#ae81ff">0</span>     <span style="color:#ae81ff">0</span>  <span style="color:#ae81ff">22</span>.7M      <span style="color:#ae81ff">0</span>  <span style="color:#ae81ff">0</span>:00:01  <span style="color:#ae81ff">0</span>:00:01 --:--:-- <span style="color:#ae81ff">35</span>.2M
+customresourcedefinition.apiextensions.k8s.io/datavolumes.cdi.kubevirt.io created
+clusterrolebinding.rbac.authorization.k8s.io/cdi-sa created
+clusterrole.rbac.authorization.k8s.io/cdi created
+clusterrolebinding.rbac.authorization.k8s.io/cdi-apiserver created
+clusterrole.rbac.authorization.k8s.io/cdi-apiserver created
+clusterrolebinding.rbac.authorization.k8s.io/cdi-apiserver-auth-delegator created
+serviceaccount/cdi-apiserver created
+rolebinding.rbac.authorization.k8s.io/cdi-apiserver created
+role.rbac.authorization.k8s.io/cdi-apiserver created
+rolebinding.rbac.authorization.k8s.io/cdi-extension-apiserver-authentication created
+role.rbac.authorization.k8s.io/cdi-extension-apiserver-authentication created
+service/cdi-api created
+deployment.apps/cdi-apiserver created
+serviceaccount/cdi-sa created
+deployment.apps/cdi-deployment created
+service/cdi-uploadproxy created
+deployment.apps/cdi-uploadproxy created
+$</code></pre></div>
+<p>At this point, we have a fully functioning OpenShift cluster with KubeVirt alongside Ember-CSI backed by a Ceph backend. We have also created a namespace/project called <code>sample-project</code> which we will use to deploy a VM using KubeVirt. Before we proceed further, source the <code>env.sh</code> file which helps create useful aliases for us to use.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ source tools/env.sh
+$ k create -f examples/cirros-pvc.yml
+persistentvolumeclaim/cirros-pvc created
+$ k get pvc
+NAME         STATUS    VOLUME                 CAPACITY   ACCESS MODES   STORAGECLASS                    AGE
+cirros-pvc   Bound     pvc-b19271605d2611e9   3Gi        RWO            io.ember-csi.external-ceph-sc   3s
+$</code></pre></div>
+<p>If the <code>status</code> above says <code>BOUND</code>, we will then check to see if the CDI Importer pod has finished importing. We can tell that the import operation has been completed because the pod (job) vanishes on completion, so we&rsquo;ll only see the imported pod for a minute or so. When the pod is no longer alive we can proceed to create the VM.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ k get pod
+NAME                            READY     STATUS    RESTARTS   AGE
+pod/importer-cirros-pvc-7fggz   <span style="color:#ae81ff">1</span>/1       Running   <span style="color:#ae81ff">0</span>          36s
+$ k logs importer-cirros-pvc-7fggz -f
+I0603 <span style="color:#ae81ff">17</span>:02:43.330267       <span style="color:#ae81ff">1</span> importer.go:45<span style="color:#f92672">]</span> Starting importer
+I0603 <span style="color:#ae81ff">17</span>:02:43.331765       <span style="color:#ae81ff">1</span> importer.go:58<span style="color:#f92672">]</span> begin import process
+I0603 <span style="color:#ae81ff">17</span>:02:43.331776       <span style="color:#ae81ff">1</span> importer.go:82<span style="color:#f92672">]</span> begin import process
+I0603 <span style="color:#ae81ff">17</span>:02:43.331782       <span style="color:#ae81ff">1</span> dataStream.go:293<span style="color:#f92672">]</span> copying <span style="color:#e6db74">&#34;https://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img&#34;</span> to <span style="color:#e6db74">&#34;/data/disk.img&#34;</span>...
+I0603 <span style="color:#ae81ff">17</span>:02:43.750839       <span style="color:#ae81ff">1</span> prlimit.go:107<span style="color:#f92672">]</span> ExecWithLimits qemu-img, <span style="color:#f92672">[</span>info --output<span style="color:#f92672">=</span>json https://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img<span style="color:#f92672">]</span>
+I0603 <span style="color:#ae81ff">17</span>:02:44.608621       <span style="color:#ae81ff">1</span> prlimit.go:107<span style="color:#f92672">]</span> ExecWithLimits qemu-img, <span style="color:#f92672">[</span>convert -p -f qcow2 -O raw json: <span style="color:#f92672">{</span><span style="color:#e6db74">&#34;file.driver&#34;</span>: <span style="color:#e6db74">&#34;https&#34;</span>, <span style="color:#e6db74">&#34;file.url&#34;</span>: <span style="color:#e6db74">&#34;https://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img&#34;</span>, <span style="color:#e6db74">&#34;file.timeout&#34;</span>: <span style="color:#ae81ff">3600</span><span style="color:#f92672">}</span> /data/disk.img<span style="color:#f92672">]</span>
+I0603 <span style="color:#ae81ff">17</span>:02:44.629043       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">0</span>.00
+I0603 <span style="color:#ae81ff">17</span>:02:45.523126       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">1</span>.19
+I0603 <span style="color:#ae81ff">17</span>:02:45.524781       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">2</span>.38
+I0603 <span style="color:#ae81ff">17</span>:02:45.526762       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">3</span>.57
+I0603 <span style="color:#ae81ff">17</span>:02:45.584362       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">4</span>.76
+I0603 <span style="color:#ae81ff">17</span>:02:45.943055       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">5</span>.95
+I0603 <span style="color:#ae81ff">17</span>:02:46.007784       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">7</span>.14
+I0603 <span style="color:#ae81ff">17</span>:02:46.009710       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">8</span>.33
+I0603 <span style="color:#ae81ff">17</span>:02:46.132837       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">9</span>.52
+I0603 <span style="color:#ae81ff">17</span>:02:46.136531       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">10</span>.71
+I0603 <span style="color:#ae81ff">17</span>:02:46.265449       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">11</span>.90
+I0603 <span style="color:#ae81ff">17</span>:02:46.331481       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">13</span>.10
+I0603 <span style="color:#ae81ff">17</span>:02:46.405348       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">14</span>.29
+I0603 <span style="color:#ae81ff">17</span>:02:46.407621       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">16</span>.67
+I0603 <span style="color:#ae81ff">17</span>:02:46.800378       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">17</span>.86
+I0603 <span style="color:#ae81ff">17</span>:02:46.926435       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">19</span>.05
+I0603 <span style="color:#ae81ff">17</span>:02:46.997326       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">20</span>.24
+I0603 <span style="color:#ae81ff">17</span>:02:47.066298       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">21</span>.43
+I0603 <span style="color:#ae81ff">17</span>:02:47.204769       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">22</span>.62
+I0603 <span style="color:#ae81ff">17</span>:02:47.208013       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">23</span>.81
+I0603 <span style="color:#ae81ff">17</span>:02:47.277740       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">26</span>.19
+I0603 <span style="color:#ae81ff">17</span>:02:47.347230       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">27</span>.38
+I0603 <span style="color:#ae81ff">17</span>:02:47.351255       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">28</span>.57
+I0603 <span style="color:#ae81ff">17</span>:02:47.352152       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">29</span>.76
+I0603 <span style="color:#ae81ff">17</span>:02:47.423172       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">30</span>.95
+I0603 <span style="color:#ae81ff">17</span>:02:47.427168       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">32</span>.94
+I0603 <span style="color:#ae81ff">17</span>:02:47.499725       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">36</span>.51
+I0603 <span style="color:#ae81ff">17</span>:02:47.854468       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">37</span>.70
+I0603 <span style="color:#ae81ff">17</span>:02:47.855162       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">38</span>.89
+I0603 <span style="color:#ae81ff">17</span>:02:47.855533       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">40</span>.08
+I0603 <span style="color:#ae81ff">17</span>:02:47.856050       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">41</span>.27
+I0603 <span style="color:#ae81ff">17</span>:02:48.107792       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">42</span>.46
+I0603 <span style="color:#ae81ff">17</span>:02:48.110893       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">43</span>.65
+I0603 <span style="color:#ae81ff">17</span>:02:48.113279       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">44</span>.84
+I0603 <span style="color:#ae81ff">17</span>:02:48.115777       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">46</span>.03
+I0603 <span style="color:#ae81ff">17</span>:02:48.118525       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">47</span>.22
+I0603 <span style="color:#ae81ff">17</span>:02:48.120897       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">53</span>.17
+I0603 <span style="color:#ae81ff">17</span>:02:48.316169       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">66</span>.27
+I0603 <span style="color:#ae81ff">17</span>:02:48.326010       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">67</span>.46
+I0603 <span style="color:#ae81ff">17</span>:02:48.531847       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">68</span>.65
+I0603 <span style="color:#ae81ff">17</span>:02:48.534070       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">70</span>.24
+I0603 <span style="color:#ae81ff">17</span>:02:48.614171       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">71</span>.43
+I0603 <span style="color:#ae81ff">17</span>:02:48.616393       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">74</span>.21
+I0603 <span style="color:#ae81ff">17</span>:02:48.684632       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">75</span>.40
+I0603 <span style="color:#ae81ff">17</span>:02:48.735547       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">76</span>.59
+I0603 <span style="color:#ae81ff">17</span>:02:48.805687       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">80</span>.56
+I0603 <span style="color:#ae81ff">17</span>:02:48.875171       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">81</span>.75
+I0603 <span style="color:#ae81ff">17</span>:02:48.902321       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">82</span>.94
+I0603 <span style="color:#ae81ff">17</span>:02:48.975726       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">84</span>.92
+I0603 <span style="color:#ae81ff">17</span>:02:49.091149       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">86</span>.11
+I0603 <span style="color:#ae81ff">17</span>:02:49.094110       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">87</span>.30
+I0603 <span style="color:#ae81ff">17</span>:02:49.164136       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">88</span>.49
+I0603 <span style="color:#ae81ff">17</span>:02:49.171284       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">89</span>.68
+I0603 <span style="color:#ae81ff">17</span>:02:49.242742       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">90</span>.87
+I0603 <span style="color:#ae81ff">17</span>:02:49.245652       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">92</span>.46
+I0603 <span style="color:#ae81ff">17</span>:02:49.312736       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">94</span>.05
+I0603 <span style="color:#ae81ff">17</span>:02:49.392508       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">95</span>.63
+I0603 <span style="color:#ae81ff">17</span>:02:49.397972       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">96</span>.83
+I0603 <span style="color:#ae81ff">17</span>:02:49.472402       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">98</span>.02
+I0603 <span style="color:#ae81ff">17</span>:02:49.473218       <span style="color:#ae81ff">1</span> qemu.go:189<span style="color:#f92672">]</span> <span style="color:#ae81ff">99</span>.21
+I0603 <span style="color:#ae81ff">17</span>:02:49.483436       <span style="color:#ae81ff">1</span> prlimit.go:107<span style="color:#f92672">]</span> ExecWithLimits qemu-img, <span style="color:#f92672">[</span>info --output<span style="color:#f92672">=</span>json /data/disk.img<span style="color:#f92672">]</span>
+W0603 <span style="color:#ae81ff">17</span>:02:49.493882       <span style="color:#ae81ff">1</span> dataStream.go:343<span style="color:#f92672">]</span> Available space less than requested size, resizing image to available space <span style="color:#ae81ff">2902560768</span>.
+I0603 <span style="color:#ae81ff">17</span>:02:49.494231       <span style="color:#ae81ff">1</span> dataStream.go:349<span style="color:#f92672">]</span> Expanding image size to: <span style="color:#ae81ff">2902560768</span>
+I0603 <span style="color:#ae81ff">17</span>:02:49.494277       <span style="color:#ae81ff">1</span> prlimit.go:107<span style="color:#f92672">]</span> ExecWithLimits qemu-img, <span style="color:#f92672">[</span>resize -f raw /data/disk.img <span style="color:#ae81ff">2902560768</span><span style="color:#f92672">]</span>
+I0603 <span style="color:#ae81ff">17</span>:02:49.516719       <span style="color:#ae81ff">1</span> importer.go:89<span style="color:#f92672">]</span> import complete
+$ k get pod
+No resources found.
+$ </code></pre></div>
+<h3 id="creating-and-managing-a-virtual-machine">Creating and Managing a Virtual Machine</h3>
+
+<p>Lets begin by creating a VM template.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ k create -f examples/cirros-vm.yml
+virtualmachine.kubevirt.io/cirros-vm created
+$</code></pre></div>
+<p>Inspect whether the VM is created and running successfully</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ k get vms
+NAME        AGE       RUNNING   VOLUME
+cirros-vm   8s        true      
+$ k get pod
+NAME                            READY     STATUS    RESTARTS   AGE
+virt-launcher-cirros-vm-rqwb6   <span style="color:#ae81ff">1</span>/1       Running   <span style="color:#ae81ff">0</span>          5m
+$</code></pre></div>
+<p>Wait for the <code>STATUS</code> to become <code>Running</code> before connecting to the VM&rsquo;s console.</p>
+
+<p>The running VM can be accessed using the console using the <code>v console ...</code> command. Note that the <code>request failed</code> errors are safe to ignore for this example Cirros VM.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ v console cirros-vm
+Successfully connected to cirros-vm console. The escape sequence is ^<span style="color:#f92672">]</span>
+<span style="color:#f92672">[</span>    <span style="color:#ae81ff">0</span>.000000<span style="color:#f92672">]</span> Initializing cgroup subsys cpuset
+<span style="color:#f92672">[</span>    <span style="color:#ae81ff">0</span>.000000<span style="color:#f92672">]</span> Initializing cgroup subsys cpu
+
+<span style="color:#f92672">[</span>...<span style="color:#f92672">]</span> 
+
+udhcpc <span style="color:#f92672">(</span>v1.23.2<span style="color:#f92672">)</span> started
+Sending discover...
+Sending <span style="color:#66d9ef">select</span> <span style="color:#66d9ef">for</span> <span style="color:#ae81ff">10</span>.128.0.67...
+Lease of <span style="color:#ae81ff">10</span>.128.0.67 obtained, lease time <span style="color:#ae81ff">86313600</span>
+route: SIOCADDRT: File exists
+WARN: failed: route add -net <span style="color:#e6db74">&#34;0.0.0.0/0&#34;</span> gw <span style="color:#e6db74">&#34;10.128.0.1&#34;</span>
+checking http://169.254.169.254/2009-04-04/instance-id
+failed <span style="color:#ae81ff">1</span>/20: up <span style="color:#ae81ff">60</span>.13. request failed
+failed <span style="color:#ae81ff">2</span>/20: up <span style="color:#ae81ff">72</span>.24. request failed
+
+<span style="color:#f92672">[</span> ... <span style="color:#f92672">]</span>
+
+failed to read iid from metadata. tried <span style="color:#ae81ff">20</span>
+failed to get instance-id of datasource
+
+<span style="color:#f92672">[</span> ... <span style="color:#f92672">]</span>
+  ____               ____  ____
+ / __/ __ ____ ____ / __ <span style="color:#ae81ff">\/</span> __/
+/ /__ / // __// __// /_/ /<span style="color:#ae81ff">\ \ </span>
+<span style="color:#ae81ff">\_</span>__//_//_/  /_/   <span style="color:#ae81ff">\_</span>___/___/ 
+   http://cirros-cloud.net
+
+
+login as <span style="color:#e6db74">&#39;cirros&#39;</span> user. default password: <span style="color:#e6db74">&#39;gocubsgo&#39;</span>. use <span style="color:#e6db74">&#39;sudo&#39;</span> <span style="color:#66d9ef">for</span> root.
+cirros-vm login: </code></pre></div>
+<p>And the VM&rsquo;s console can be exited using the <code>Control+]</code> sequence, which will return control back to your shell.</p>
+
+<p>To shut down the VM instance.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ v stop cirros-vm
+VM cirros-vm was scheduled to stop
+$</code></pre></div>
+<p>And finally, delete the VM definition and remove the previously created PVC.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ k delete vms cirros-vm
+virtualmachine.kubevirt.io <span style="color:#e6db74">&#34;cirros-vm&#34;</span> deleted
+$ k delete -f examples/cirros-pvc.yml
+persistentvolumeclaim <span style="color:#e6db74">&#34;cirros-pvc&#34;</span> deleted
+$ </code></pre></div>
+<h3 id="tear-down">Tear Down</h3>
+
+<p>Tear down the whole deployment by using:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ make cluster-down
+source ./tools/env.sh <span style="color:#f92672">&amp;&amp;</span> ./cluster/down.sh
+$</code></pre></div>
 </article>
 
 
