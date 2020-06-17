@@ -55,7 +55,7 @@ The main factor when deciding whether to use Cinder-CSI or Ember-CSI is where we
 
 If it's going to be running on top of OpenStack, then we'll most likely want to use Cinder-CSI, but if we are running it on anything other than OpenStack, then we can't use Cinder-CSI, so we'll have to go with Ember-CSI.
 
-There may be special cases where even though we are deploying our container orchestrator on top of OpenStack we sill prefer to use Ember-CSI.  For example if we want to use different arrays for OpenShift and OpenStack because the storage arrays are managed by different teams.
+There may be special cases where even though we are deploying our container orchestrator on top of OpenStack we still prefer to use Ember-CSI.  For example if we want to use different arrays for OpenShift and OpenStack because the storage arrays are managed by different teams.
 
 ### Deployment
 
