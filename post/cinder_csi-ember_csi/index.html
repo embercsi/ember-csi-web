@@ -1,0 +1,189 @@
+
+<!DOCTYPE HTML>
+
+<html>
+	<head>
+    <title>Ember CSI</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css" />
+    
+    <meta name="generator" content="Hugo 0.45.1" />
+    <link href="https://fonts.googleapis.com/css?family=Pattaya" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="/images/ember.svg">
+<link rel="icon" href="/images/icon192.png">
+
+</head>
+
+	<body class="homepage">
+		<div id="page-wrapper">
+
+			
+			<div id="header-wrapper">
+				<div id="header">
+
+                    <section id="top_page">
+					
+<div>
+<h1><a href="/"><img src="/images/ember.svg" height=64/> EMBER</a></h1>
+<h2>Unified Storage Plugin for Containers</h2>
+</div>
+
+					
+<div>
+<nav id="nav">
+    <ul>
+            <li><a href='https://twitter.com/ember_csi' title='Twitter'><i class="fa fa-twitter"></i></a></li>
+            <li><a href='https://kiwiirc.com/client/irc.freenode.net/ember-csi' title='IRC'><i class="fa fa-hashtag"></i></a></li>
+            <li><a href='https://groups.google.com/forum/#!forum/embercsi' title='Forum & Mailing list'><i class="fa fa-comments"></i></a></li>
+            <li><a href='https://github.com/embercsi/ember-csi' title='Code'><i class="fa fa-github"></i></a></li>
+            <li><a href='http://docs.ember-csi.io' title='Documentation'><i class="fa fa-book"></i></a></li>
+    </ul>
+</nav>
+</div>
+
+                    </section>
+
+				</div>
+			</div>
+
+			
+			<div id="main-wrapper">
+				<div class="container">
+					
+					
+<article class="box post">
+    <a href="#" class="image featured"><img src="/images/02-post.jpg" alt="" /></a>
+    <header>
+        <h2>Cinder-CSI vs Ember-CSI</h2>
+        
+        <p>June 17, 2020</p>
+        
+    </header>
+    
+
+<p>Once people see that Ember-CSI uses the Cinder drivers, they immediately wonder what&rsquo;s the difference between the two CSI plugins, but there is no document that answers that question.  They can dig into the documentations of both projects to understand their architectures and come up with the answer, but it&rsquo;s somewhat painful.</p>
+
+<p>In this article we aim to answer the most common questions that will come up when looking into Cinder supported drivers and how to connect them to Kubernetes and OpenShift.</p>
+
+<h3 id="cinder-csi">Cinder-CSI</h3>
+
+<p>To understand the Cinder-CSI plugin the first thing we need to understand is what is a Cloud Provider.</p>
+
+<p>In general, a Cloud Provider, or Cloud Service Provider, is a company that provides IT services in the cloud, such as Infrastructure as a Service (IaaS), Software as a Service (SaaS) or Platform as a Service (PaaS), to businesses or individuals.</p>
+
+<p>Some examples of Cloud Providers are IBM Cloud, Amazon Web Services (AWS), Microsoft Azure, Alibaba Cloud, etc.</p>
+
+<p>Now, when we talk about Cloud Providers within the Kubernetes/OpenShift context, we are referring to the integration points between the container platform and the cloud providers that provides the underlying infrastructure used by the container cluster.  In other words, the piece of software that allows the container platform to talk to the underlying infrastructure where it has been deployed or were it is being deployed.</p>
+
+<p>Some of these <a href="https://kubernetes.io/docs/concepts/cluster-administration/cloud-providers">Kubernetes/OpenShift Cloud Providers</a> are tied to a specific company, like AWS is specific to Amazon, whereas others are OpenSource and can have different companies, or ourselves, providing the service, like OpenStack and oVirt.</p>
+
+<p>And here is where we get to the part that we care about, because Cinder-CSI is a plugin that implements the <a href="https://github.com/container-storage-interface/spec">CSI spec</a>
+ to enable dynamic provisioning and managing of PVs and PVCs in Kubernetes/OpenShift using an existing Cinder service when the container orchestrator is running inside OpenStack.</p>
+
+<p>This means that we must have an OpenStack deployment and have our Kubernetes/OpenShift cluster running inside VMs provided by Nova (the OpenStack compute service) to be able to use Cinder-CSI.</p>
+
+<p>We cannot use Cinder-CSI if Cinder is running as a stand-alone service or if our Kubernetes/OpenShift cluster is deployed side-by-side of our OpenStack deployment.</p>
+
+<h3 id="ember-csi">Ember-CSI</h3>
+
+<p>Ember-CSI is a plugin that also implements the <a href="https://github.com/container-storage-interface/spec">CSI spec</a> and also uses the Cinder drivers, but it uses them directly instead of going through the Cinder API.</p>
+
+<p>This means that Ember-CSI doesn&rsquo;t really run Cinder (Volume, API, and Scheduler services) or its required services (RabbitMQ, MariaDB) to talk to the storage arrays, it uses the Cinder driver code as if it were the Cinder Volume service itself, but instead of providing a RabbitMQ RPC system that is finally exposed via REST-API to the user, it provides a gRPC interface implementing the <a href="https://github.com/container-storage-interface/spec">CSI spec</a>.</p>
+
+<p>This makes the Ember-CSI plugin agnostic to the underlying Cloud Provider, and it can work with any of the existing Cloud Providers as well as on baremetal.  The requirement is that the controller pod, which is usually run on master nodes, has access to the storage management network (some drivers also require access to the storage data network), and the node pods, which run on compute nodes, must have access to the storage data network.</p>
+
+<h3 id="supported-drivers">Supported drivers</h3>
+
+<p>When it comes to storage drivers supported by these two CSI plugins, there are important differences that we must take into consideration.</p>
+
+<p>On one hand we have Cinder-CSI, which uses the Cinder service itself, and therefore supports all the storage solutions supported by Cinder, regardless of whether the connection to the volumes is done by at the host level (iSCSI, FC) or by QEMU-KVM (RBD).</p>
+
+<p>On the other hand, Ember-CSI currently has more limitations, and doesn&rsquo;t support all the Cinder drivers and some have some limitations.  For example NFS drivers are not supported and the RBD volumes cannot have all the Ceph features enabled at the moment (we use krbd to do the attachments).</p>
+
+<h3 id="when-to-use-them">When to use them</h3>
+
+<p>The main factor when deciding whether to use Cinder-CSI or Ember-CSI is where we are deploying our Kubernetes/OpenShift cluster.</p>
+
+<p>If it&rsquo;s going to be running on top of OpenStack, then we&rsquo;ll most likely want to use Cinder-CSI, but if we are running it on anything other than OpenStack, then we can&rsquo;t use Cinder-CSI, so we&rsquo;ll have to go with Ember-CSI.</p>
+
+<p>There may be special cases where even though we are deploying our container orchestrator on top of OpenStack we sill prefer to use Ember-CSI.  For example if we want to use different arrays for OpenShift and OpenStack because the storage arrays are managed by different teams.</p>
+
+<h3 id="deployment">Deployment</h3>
+
+<p>Now that you know the differences between these two CSI plugins, how can you test them?</p>
+
+<h4 id="cinder-csi-1">Cinder-CSI</h4>
+
+<p>I have never deployed Cinder-CSI, so I cannot tell what&rsquo;s the best approach to use it.</p>
+
+<p>In my head using <a href="https://docs.openstack.org/devstack/latest">DevStack</a> with the <a href="https://github.com/kubernetes/cloud-provider-openstack/tree/master/devstack">Cloud Provider OpenStack DevStack plugin</a> and then manually deploying <a href="https://github.com/kubernetes/cloud-provider-openstack/tree/master/manifests">the manifests</a> should be the most straightforward approach and require the fewer resources.</p>
+
+<p>Unfortunately, as far as I know, the plugin doesn&rsquo;t work correctly with CentOS/Fedora, maybe trying with Ubuntu will yield better results.</p>
+
+<p>In light of these issues, probably running DevStack and then following <a href="https://kubernetes.io/blog/2020/02/07/deploying-external-openstack-cloud-provider-with-kubeadm/">Kubernetes&rsquo; article from February</a> will be the best option.</p>
+
+<h4 id="ember-csi-1">Ember-CSI</h4>
+
+<p>For Ember-CSI the recommended installation tool is the Ember-CSI operator that is <a href="https://operatorhub.io/operator/ember-csi-operator">is available in the Kubernetes operator catalog</a> as well as the OpenShift embedded catalog.</p>
+
+<p><img src="/images/02-post-catalog.png" alt="Ember-CSI in OpenShift Catalog" /></p>
+
+<p>Installing the Kubernetes/OpenShift cluster is not part of the operator&rsquo;s responsibility, and we&rsquo;ll have to do that ourselves, for example using <a href="https://developers.redhat.com/products/codeready-containers/overview">Code Ready Containers (CRC)</a>.  We&rsquo;ll soon write a short article explaining how easy it is to get a working setup with CRC and Ember-CSI.</p>
+
+<p>The main reason why it was decided to go with an Operator driven deployment instead of Helm Charts is the complexity of configuring the drivers.  Each driver has very different configuration options, and we have to know which options are needed for each driver.  In this situation a visual interface using a form is definitely a more intuitive and user friendly approach.</p>
+
+<p><img src="/images/02-post-driver-cfg.png" alt="Ember-CSI operator form" /></p>
+
+<p>This solution still supports automated deployments using YAML manifests to instruct the operator to do an Ember-CSI deployment.</p>
+
+<h3 id="summary">Summary</h3>
+
+<p>These two CSI plugins are aimed to completely different scenarios, and it&rsquo;s not about which one performs better or uses fewer resources, it&rsquo;s mostly about your Kubernetes/OpenShift deployment.</p>
+
+<p>If you run Kubernetes/OpenShift on top of OpenStack, then use Cinder-CSI, otherwise use Ember-CSI.</p>
+
+</article>
+
+
+
+					
+				</div>
+			</div>
+
+            
+<div id="footer-wrapper">
+    <section id="footer" class="container">
+        <div class="row">
+    <div class="12u">
+
+        
+            <div id="copyright">
+                &copy; Ember CSI. All rights reserved. Design by geguileo based on <a href="https://curtistimson.co.uk">curttimson</a>'s Hugo port of a <a href="http://html5up.net">HTML5 UP</a> template.  Background image based one from <a href="https://torange.biz/fx/digital-binary-data-futuristic-infographic-background-172436">torange.biz</a>.
+            </div>
+
+    </div>
+</div>
+
+    </section>
+</div>
+
+
+        </div>
+
+		
+<script src="/assets/js/jquery.min.js"></script>
+<script src="/assets/js/jquery.dropotron.min.js"></script>
+<script src="/assets/js/skel.min.js"></script>
+<script src="/assets/js/skel-viewport.min.js"></script>
+<script src="/assets/js/util.js"></script>
+
+<script src="/assets/js/main.js"></script>
+
+
+
+
+
+	</body>
+</html>

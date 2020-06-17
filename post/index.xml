@@ -6,10 +6,20 @@
     <description>Recent content in Posts on Ember CSI</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Wed, 10 Apr 2019 11:13:00 +0200</lastBuildDate>
+    <lastBuildDate>Wed, 17 Jun 2020 17:05:00 +0200</lastBuildDate>
     
 	<atom:link href="/post/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Cinder-CSI vs Ember-CSI</title>
+      <link>/post/cinder_csi-ember_csi/</link>
+      <pubDate>Wed, 17 Jun 2020 17:05:00 +0200</pubDate>
+      
+      <guid>/post/cinder_csi-ember_csi/</guid>
+      <description>Once people see that Ember-CSI uses the Cinder drivers, they immediately wonder what&amp;rsquo;s the difference between the two CSI plugins, but there is no document that answers that question. They can dig into the documentations of both projects to understand their architectures and come up with the answer, but it&amp;rsquo;s somewhat painful.
+In this article we aim to answer the most common questions that will come up when looking into Cinder supported drivers and how to connect them to Kubernetes and OpenShift.</description>
+    </item>
     
     <item>
       <title>Driver validation</title>
