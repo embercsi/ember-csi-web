@@ -3,6 +3,7 @@ description = "Making storage solutions available in OpenShift with Ember-CSI is
 thumbnail = "images/03-getstarted-thumb.jpg"
 image = "images/03-getstarted.jpg"
 title = "OpenShift 4.x and Ember CSI"
+images = ["images/03-getstarted.jpg"]
 slug = "openshift"
 author = "Gorka Eguileor"
 draft = false

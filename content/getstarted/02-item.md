@@ -1,6 +1,7 @@
 +++
 description = "Deploying KubeVirt with a CSI plugin can be tricky, there are multiple steps: setting Access Control of Kubelet, Kubernetes API, and the CSI plugin services, restarting of pods, and creating the manifests to properly deploy the controller and node CSI services.  This guide presents an easy way to try KubeVirt with Ember-CSI."
 thumbnail = "images/02-getstarted-thumb.jpg"
+images = ["images/02-getstarted-thumb.jpg"]
 image = "images/02-getstarted.jpg"
 title = "KubeVirt and Ember-CSI"
 slug = "kubevirt"

@@ -1,6 +1,7 @@
 +++
 description = "Setting Kubernetes to use CSI plugins is non trivial: Access Control of Kubelet, Kubernetes API, and CSI plugin services, and the manifests to properly deploy the controller and node CSI services are some of the required steps.  This guide presents an easy way to try Kubernetes with Ember CSI using CSI 1.0."
 thumbnail = "images/01-getstarted-thumb.jpg"
+images = ["images/01-getstarted-thumb.jpg"]
 image = "images/01-getstarted.jpg"
 title = "Kubernetes and Ember CSI"
 slug = "k8s"

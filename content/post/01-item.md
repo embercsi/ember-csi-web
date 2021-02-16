@@ -1,6 +1,7 @@
 +++
 description = "Are you interested in Ember-CSI and want to know if your storage backend works with it? Then this article is for you. We present a step by step guide to validate a backend in Ember-CSI. From getting the right configuration to creating and using volumes in containers on a Kubernetes cluster using your backend via Ember-CSI."
 thumbnail = "images/01-post-thumb.jpg"
+images = ["images/01-post-thumb.jpg"]
 image = "images/01-post.jpg"
 title = "Driver validation"
 slug = "validation"

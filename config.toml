@@ -1,8 +1,11 @@
 languageCode = "en-us"
 title = "Ember CSI"
-baseURL = "/"
+baseURL = "https://ember-csi.io/"
 theme = "./"
 pygmentsCodeFences = true
+
+[social]
+    twitter = "ember_csi"
 
 [params.portfolio]
     title = "Getting Started"

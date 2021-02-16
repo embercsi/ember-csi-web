@@ -1,6 +1,7 @@
 +++
 description = "What are the differences between Cinder-CSI and Ember-CSI?  When should I use one or the other? Do they support the same drivers? These are the most common questions when looking at connecting Cinder supported storage to K8s/OpenShift, and this short article answers these and other related questions."
 thumbnail = "images/02-post-thumb.jpg"
+images = ["images/02-post-thumb.jpg"]
 image = "images/02-post.jpg"
 title = "Cinder-CSI vs Ember-CSI"
 slug = "cinder_csi-ember_csi"

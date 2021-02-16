@@ -4,6 +4,9 @@ baseURL = "http://localhost:1313/"
 theme = "./"
 pygmentsCodeFences = true
 
+[social]
+    twitter = "ember_csi"
+
 [params.portfolio]
     title = "Getting Started"
     foldername = "getstarted"
