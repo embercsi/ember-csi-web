@@ -9,7 +9,7 @@ draft = false
 hidesidebar = true
 publishDate=2018-08-02T19:05:52+02:00
 lastmod=2019-06-03T14:30:57-05:00
-weight = 2
+weight = 3
 +++
 [KubeVirt](https://kubevirt.io) is a virtual machine management add-on for [Kubernetes](https://kubernetes.io). It allows users to run VMs alongside containers in the their Kubernetes or [OpenShift](https://www.openshift.com) clusters. This document describes a quick way to deploy either Kubernetes or OpenShift, KubeVirt and [Ember-CSI](https://ember-csi.io).
 
