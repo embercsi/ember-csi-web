@@ -1,0 +1,319 @@
+
+<!DOCTYPE HTML>
+
+<html>
+	<head>
+    <title>Ember CSI</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css" />
+    
+    <meta name="generator" content="Hugo 0.45.1" />
+    <link href="https://fonts.googleapis.com/css?family=Pattaya" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="/images/ember.svg">
+<link rel="icon" href="/images/icon192.png">
+
+</head>
+
+	<body class="homepage">
+		<div id="page-wrapper">
+
+			
+			<div id="header-wrapper">
+				<div id="header">
+
+                    <section id="top_page">
+					
+<div>
+<h1><a href="/"><img src="/images/ember.svg" height=64/> EMBER</a></h1>
+<h2>Unified Storage Plugin for Containers</h2>
+</div>
+
+					
+<div>
+<nav id="nav">
+    <ul>
+            <li><a href='https://twitter.com/ember_csi' title='Twitter'><i class="fa fa-twitter"></i></a></li>
+            <li><a href='https://kiwiirc.com/client/irc.freenode.net/ember-csi' title='IRC'><i class="fa fa-hashtag"></i></a></li>
+            <li><a href='https://groups.google.com/forum/#!forum/embercsi' title='Forum & Mailing list'><i class="fa fa-comments"></i></a></li>
+            <li><a href='https://github.com/embercsi/ember-csi' title='Code'><i class="fa fa-github"></i></a></li>
+            <li><a href='http://docs.ember-csi.io' title='Documentation'><i class="fa fa-book"></i></a></li>
+    </ul>
+</nav>
+</div>
+
+                    </section>
+
+				</div>
+			</div>
+
+			
+			<div id="main-wrapper">
+				<div class="container">
+					
+					
+<article class="box post">
+    <a href="#" class="image featured"><img src="/images/03-getstarted.jpg" alt="" /></a>
+    <header>
+        <h2>OpenShift 4.x and Ember CSI</h2>
+        
+        <p>February 16, 2021</p>
+        
+    </header>
+    
+
+<p>Deploying CSI plugins is a non trivial task, and for Ember-CSI this installation would be even more complex, since there are many supported backends we need to find out what are the right configuration options for ours before we can do the deployment.</p>
+
+<p>In Kubernetes installation is usually done using manifests or Helm charts, but for OpenShift clusters CSI plugins can have their own operator to facilitate the installation process.</p>
+
+<p>In this article we&rsquo;ll show how easy it is to use the Ember-CSI operator to add our storage solution to OpenShift and also provide an easy mechanism to deploy a POC OpenShift 4.5 cluster with an LVM backend.</p>
+
+<h3 id="requirements">Requirements</h3>
+
+<p>In order to deploy Ember-CSI using its operator we need an OpenShift cluster.</p>
+
+<p>If we don&rsquo;t have one, we can deploy a local development cluster using <a href="https://developers.redhat.com/products/codeready-containers/overview">CodeReady Containers</a> as explained in the next section, and if we have one we can skip directly to the <a href="#install-the-operator">Install the Operator section</a>.</p>
+
+<p>Deploying CodeReady Containers requires:</p>
+
+<ul>
+<li>4 virtual CPUs (vCPUs)</li>
+<li>9 GB of free memory</li>
+<li>35 GB of storage space</li>
+</ul>
+
+<p>When using our own OpenShift cluster please make sure that <code>iscsid</code> and <code>multipathd</code> services are running on the hosts.</p>
+
+<h3 id="openshift-cluster">OpenShift Cluster</h3>
+
+<p>If we are going to use our own OpenShift cluster we can skip this section.</p>
+
+<p>CodeReady Containers is the quickest way to get started building OpenShift clusters. It is designed to run on a local computer to simplify setup and testing, and emulate the cloud development environment locally with all of the tools needed to develop container-based applications.</p>
+
+<p>An OpenShift cluster deployed using CodeReady Containers (CRC) won&rsquo;t give us everything we need for CSI plugins out of the box, since the tool is meant for application development, and some extra steps are necessary.</p>
+
+<p>Instead of explaining all these steps we will be using a tool we use to run OpenShift CSI end-to-end tests: <a href="https://github.com/embercsi/crc-tests">crc-tests</a>.</p>
+
+<p>This tool will make sure that the CRC OpenShift cluster deployment is ready for CSI plugins, and getting our cluster ready is as easy as:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ git clone https://github.com/embercsi/crc-tests
+$ cd crc-tests
+$ ./start.sh run</code></pre></div>
+<p>This last step will take a while to complete, but once it&rsquo;s done we should see something like:</p>
+
+<p><p style="background-color:black; color:yellow; padding-left: 10px; Font-family: 'Lucida Console', Monaco, monospace;";>
+If you are running this on a different host/VM, you can access the web console by:<br />
+  - Setting your browser&rsquo;s proxy to this host&rsquo;s IP and port 8888<br />
+  - Going to <a href="https://console-openshift-console.apps-crc.testing">https://console-openshift-console.apps-crc.testing</a><br />
+  - Using below credentials (kubeadmin should be entered as kube:admin)<br />
+To login as a regular user, run &lsquo;oc login -u developer -p developer <a href="https://api.crc.testing:6443'">https://api.crc.testing:6443'</a>.<br />
+To login as an admin, run &lsquo;oc login -u kubeadmin -p HqC3I-wgtiB-q7qCf-KEsuK <a href="https://api.crc.testing:6443'">https://api.crc.testing:6443'</a><br />
+<br />
+To access the cluster from the command line you can run:<br />
+  $ eval <code>/home/vagrant/crc-linux/crc oc-env</code><br />
+  $ ./start.sh login<br />
+</p><br /></p>
+
+<h3 id="install-the-operator">Install the Operator</h3>
+
+<p>There are multiple ways to install the operator.  We can use the <code>start.sh</code> script, use our own manifest, or use the OpenShift&rsquo;s web console.</p>
+
+<p>If we have used the <code>start.sh</code> script to deploy an OpenShift cluster we could use the same script to deploy the operator:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ ./start operator</code></pre></div>
+<p>If we are using our own cluster, or if we don&rsquo;t want to rely on the <code>start.sh</code> script, we will deploy it using OpenShift&rsquo;s web console.</p>
+
+<p><u><strong>Note</strong></u>: If we used <code>start.sh</code> to deploy our cluster we must set our browser&rsquo;s proxy to port 8888 and the IP of the node where we run the script and go to <a href="https://console-openshift-console.apps-crc.testing">https://console-openshift-console.apps-crc.testing</a> to log in.  We&rsquo;ll also see a security warning we&rsquo;ll have to accept by clicking on <em>Advanced&hellip;</em> and then on <em>Accept the Risk and Continue</em>.</p>
+
+
+<figure class="zoomable">
+    
+        <img src="/images/03-getstarted/security-warning.png" />
+    
+    
+</figure>
+
+
+<p>After logging in the OpenShift console as an administrator we go to the OperatorHub:</p>
+
+<p><img src="/images/03-getstarted/01-operatorhub.png" alt="Operator hub" /></p>
+
+<p>Then we search for the Ember-CSI operator and click on it:</p>
+
+<p><img src="/images/03-getstarted/02-operatorhub-search-ember.png" alt="Operator hub search" /></p>
+
+<p>If we are installing the Community Operator we&rsquo;ll be required to confirm that we understand the implications.  We click <em>Continue</em>:</p>
+
+<p><img src="/images/03-getstarted/03-confirm-community.png" alt="Confirm community operator" /></p>
+
+<p>And we are presented with the Ember-CSI Operator page, where we click <em>Install</em>:</p>
+
+<p><img src="/images/03-getstarted/04-install-1.png" alt="Install" /></p>
+
+<p>And then <em>Install</em> again:</p>
+
+
+<figure class="zoomable">
+    
+        <img src="/images/03-getstarted/05-install-2.png" />
+    
+    
+</figure>
+
+
+<p>This will trigger the download and execution of the operator container image. It will take a couple of seconds, and in the meantime we&rsquo;ll see that the installation is in progress and maybe a couple of weird entries saying at the beginning:</p>
+
+
+<figure class="zoomable">
+    
+        <img src="/images/03-getstarted/06-installing.png" />
+    
+    
+</figure>
+
+
+<p>Once the operator reaches the <em>Succeeded</em> status we click on it:</p>
+
+<p><img src="/images/03-getstarted/07-succeeded.png" alt="Succeeded" /></p>
+
+<h3 id="deploy-the-backend">Deploy the Backend</h3>
+
+<p>If we don&rsquo;t have a proper storage backend, or we don&rsquo;t want to use it for these tests, and we have deployed the OpenStack cluster using the <code>start.sh</code> script, we can use the LVM VG that was provisioned on the VM by the script.  We can deploy Ember-CSI with this backend using the web console or the script:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">$ ./start.sh driver</code></pre></div>
+<p>To deploy the Ember-CSI using the OpenShift web console we need to create a new <em>Storage Backend</em> instance with the operator:</p>
+
+<p><img src="/images/03-getstarted/08-create-storage-banckend.png" alt="Succeeded" /></p>
+
+<p>We could configure the backend using YAML, but then we would have to know the exact configuration options available to our backend, which is inconvenient, and that&rsquo;s why since OpenShift 4.5 the default is to use the form provided by the operator.</p>
+
+<p>In the form we should change the <em>name</em> field from <em>default</em> to a unique and meaningful name to identify this backend. Then go to the <em>Driver</em> dropdown and select the name of our storage backend.  After selecting the appropriate driver, the relevant configuration options for the selected driver will be displayed.</p>
+
+<p><u><strong>Note</strong></u>: If we deployed the cluster with <code>start.sh</code> and we want to manually use the LVM VG we need to select the appropriate <em>Driver</em> inside the <em>Driver Settings</em> section which is <em>LVMVolume</em>, then set just two of the driver&rsquo;s options: <em>Volume Group</em> to <em>ember-volumes</em> and <em>Target Helper</em> to <em>lioadm</em>.</p>
+
+<p><img src="/images/03-getstarted/09-name-and-driver.png" alt="Name and driver" /></p>
+
+<p>After setting the configuration options we click <em>Create</em> at the botom of the page:</p>
+
+<p><img src="/images/03-getstarted/10-create-backend.png" alt="Create" /></p>
+
+<p>And a new <em>EmberStorageBackend</em> entity will be created.  Don&rsquo;t wait for the <em>Status</em> to change, since it won&rsquo;t:</p>
+
+
+<figure class="zoomable">
+    
+        <img src="/images/03-getstarted/11-EmberStorageBackends.png" />
+    
+    
+</figure>
+
+
+<p>We can see that the deployment is complete going to <em>Stateful Sets</em>, <em>Daemon Sets</em>, and <em>Replica Sets</em> pages in the <em>Workloads</em> section to see that the deployed pods are running:</p>
+
+<p>
+<figure class="zoomable">
+    
+        <img src="/images/03-getstarted/12-StatefulSet.png" />
+    
+    
+</figure>
+
+<br /></p>
+
+<p>
+<figure class="zoomable">
+    
+        <img src="/images/03-getstarted/13-DaemonSet.png" />
+    
+    
+</figure>
+
+<br /></p>
+
+<p>
+<figure class="zoomable">
+    
+        <img src="/images/03-getstarted/14-ReplicaSets.png" />
+    
+    
+</figure>
+
+<br /></p>
+
+<p><u><strong>Note</strong></u>: If there are issues in the new <em>Stateful</em>, <em>Daemon</em>, or <em>Replica Sets</em> we can look into the <a href="https://docs.ember-csi.io/en/latest/troubleshooting.html">Ember-CSI troubleshooting guide</a> for details on how to look into installation issues, or contact the team on <a href="https://twitter.com/ember_csi">Twitter</a>, <a href="https://kiwiirc.com/client/irc.freenode.net/ember-csi">IRC</a>, <a href="https://groups.google.com/forum/#!forum/embercsi">Google groups</a>, or <a href="https://github.com/embercsi/ember-csi/issues">GitHub issues</a>.</p>
+
+<p>We can also check that a new <em>Storage Class</em> has been created in <em>Storage</em> &gt; <em>Storage Classes</em>. The name of the new class will be <em>example.ember-csi.io</em> where <em>example</em> will be the name we gave to the <em>Storage Backend</em> in the form:</p>
+
+
+<figure class="zoomable">
+    
+        <img src="/images/03-getstarted/15-StorageClass.png" />
+    
+    
+</figure>
+
+
+<p>We can set this <em>Storage Class</em> as the default class by going to its actions and selecting <em>Edit Annotations</em>:</p>
+
+
+<figure class="zoomable">
+    
+        <img src="/images/03-getstarted/16-edit-annotations.png" />
+    
+    
+</figure>
+
+
+<p>And then adding key <code>storageclass.kubernetes.io/is-default-class</code> with the value of <code>true</code>.</p>
+
+<p><img src="/images/03-getstarted/17-default-sc.png" alt="Defaults SC" /></p>
+
+<p><u><strong><em>Warning</em></strong></u>: If we already have a default and we want to change it to this one, we&rsquo;ll need to modify the current default by removing the annotation or setting it to <code>false</code>.</p>
+
+<h3 id="next-steps">Next steps</h3>
+
+<p>If we have configured everything right we&rsquo;ll now be able to use our storage solution into OpenShift using the new <code>StorageClass</code> that was created by the operator in our <code>PersistenceVolumeClaims</code> (<em>PVC</em>).</p>
+
+<p>Detailing how to use storage in OpenShift is out of the scope of this article, but there is plenty information on <a href="https://docs.ember-csi.io/en/latest/usage.html">Ember-CSI&rsquo;s usage documentation page</a> as well as the <a href="https://docs.openshift.com/container-platform/latest/storage/understanding-persistent-storage.html">OpenShift&rsquo;s persistence storage page</a>.</p>
+
+</article>
+
+
+
+					
+				</div>
+			</div>
+
+            
+<div id="footer-wrapper">
+    <section id="footer" class="container">
+        <div class="row">
+    <div class="12u">
+
+        
+            <div id="copyright">
+                &copy; Ember CSI. All rights reserved. Design by geguileo based on <a href="https://curtistimson.co.uk">curttimson</a>'s Hugo port of a <a href="http://html5up.net">HTML5 UP</a> template.  Background image based one from <a href="https://torange.biz/fx/digital-binary-data-futuristic-infographic-background-172436">torange.biz</a>.
+            </div>
+
+    </div>
+</div>
+
+    </section>
+</div>
+
+
+        </div>
+
+		
+<script src="/assets/js/jquery.min.js"></script>
+<script src="/assets/js/jquery.dropotron.min.js"></script>
+<script src="/assets/js/skel.min.js"></script>
+<script src="/assets/js/skel-viewport.min.js"></script>
+<script src="/assets/js/util.js"></script>
+
+<script src="/assets/js/main.js"></script>
+
+
+
+
+
+	</body>
+</html>

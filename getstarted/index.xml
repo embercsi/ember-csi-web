@@ -6,10 +6,20 @@
     <description>Recent content in Getstarteds on Ember CSI</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 02 Aug 2018 19:05:52 +0200</lastBuildDate>
+    <lastBuildDate>Tue, 16 Feb 2021 16:00:00 +0100</lastBuildDate>
     
 	<atom:link href="/getstarted/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>OpenShift 4.x and Ember CSI</title>
+      <link>/getstarted/openshift/</link>
+      <pubDate>Tue, 16 Feb 2021 16:00:00 +0100</pubDate>
+      
+      <guid>/getstarted/openshift/</guid>
+      <description>Deploying CSI plugins is a non trivial task, and for Ember-CSI this installation would be even more complex, since there are many supported backends we need to find out what are the right configuration options for ours before we can do the deployment.
+In Kubernetes installation is usually done using manifests or Helm charts, but for OpenShift clusters CSI plugins can have their own operator to facilitate the installation process.</description>
+    </item>
     
     <item>
       <title>Kubernetes and Ember CSI</title>
