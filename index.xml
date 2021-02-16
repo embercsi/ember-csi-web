@@ -2,41 +2,41 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Ember CSI</title>
-    <link>/</link>
+    <link>https://ember-csi.io/</link>
     <description>Recent content on Ember CSI</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Tue, 16 Feb 2021 16:00:00 +0100</lastBuildDate>
     
-	<atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://ember-csi.io/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>OpenShift 4.x and Ember CSI</title>
-      <link>/getstarted/openshift/</link>
+      <link>https://ember-csi.io/getstarted/openshift/</link>
       <pubDate>Tue, 16 Feb 2021 16:00:00 +0100</pubDate>
       
-      <guid>/getstarted/openshift/</guid>
+      <guid>https://ember-csi.io/getstarted/openshift/</guid>
       <description>Deploying CSI plugins is a non trivial task, and for Ember-CSI this installation would be even more complex, since there are many supported backends we need to find out what are the right configuration options for ours before we can do the deployment.
 In Kubernetes installation is usually done using manifests or Helm charts, but for OpenShift clusters CSI plugins can have their own operator to facilitate the installation process.</description>
     </item>
     
     <item>
       <title>Kubernetes and Ember CSI</title>
-      <link>/getstarted/k8s/</link>
+      <link>https://ember-csi.io/getstarted/k8s/</link>
       <pubDate>Thu, 02 Aug 2018 19:05:52 +0200</pubDate>
       
-      <guid>/getstarted/k8s/</guid>
+      <guid>https://ember-csi.io/getstarted/k8s/</guid>
       <description>Many things need to be considered when deploying a CSI plugin in Kubernetes, making it a painful experience for many first time users. To ease this first contact with Kubernetes and CSI, the Ember repository comes with a Kubernetes example that automates the deployment of Kubernetes with Ember CSI using CSI spec version 1.0.
 This article covers how to run Ember-CSI as a CSI v1 plugin deployed in Kubernetes 1.</description>
     </item>
     
     <item>
       <title>KubeVirt and Ember-CSI</title>
-      <link>/getstarted/kubevirt/</link>
+      <link>https://ember-csi.io/getstarted/kubevirt/</link>
       <pubDate>Thu, 02 Aug 2018 19:05:52 +0200</pubDate>
       
-      <guid>/getstarted/kubevirt/</guid>
+      <guid>https://ember-csi.io/getstarted/kubevirt/</guid>
       <description>KubeVirt is a virtual machine management add-on for Kubernetes. It allows users to run VMs alongside containers in the their Kubernetes or OpenShift clusters. This document describes a quick way to deploy either Kubernetes or OpenShift, KubeVirt and Ember-CSI.
 The Ember-CSI-KubeVirt repository provides a seamless wrapper integrating the deployments of OpenShift or Kubernetes, KubeVirt, Containerized Data Importer (CDI), Ember-CSI and a Ceph demo cluster.
 Ember-CSI should always be deployed using the Ember-CSI-Operator, like we do here.</description>
@@ -44,20 +44,20 @@ Ember-CSI should always be deployed using the Ember-CSI-Operator, like we do her
     
     <item>
       <title>Cinder-CSI vs Ember-CSI</title>
-      <link>/post/cinder_csi-ember_csi/</link>
+      <link>https://ember-csi.io/post/cinder_csi-ember_csi/</link>
       <pubDate>Wed, 17 Jun 2020 17:05:00 +0200</pubDate>
       
-      <guid>/post/cinder_csi-ember_csi/</guid>
+      <guid>https://ember-csi.io/post/cinder_csi-ember_csi/</guid>
       <description>Once people see that Ember-CSI uses the Cinder drivers, they immediately wonder what&amp;rsquo;s the difference between the two CSI plugins, but there is no document that answers that question. They can dig into the documentations of both projects to understand their architectures and come up with the answer, but it&amp;rsquo;s somewhat painful.
 In this article we aim to answer the most common questions that will come up when looking into Cinder supported drivers and how to connect them to Kubernetes and OpenShift.</description>
     </item>
     
     <item>
       <title>Driver validation</title>
-      <link>/post/validation/</link>
+      <link>https://ember-csi.io/post/validation/</link>
       <pubDate>Wed, 10 Apr 2019 11:13:00 +0200</pubDate>
       
-      <guid>/post/validation/</guid>
+      <guid>https://ember-csi.io/post/validation/</guid>
       <description>The Ember-CSI team is frequently asked about the supported backends and how to test Ember-CSI with a specific one. In some cases the answer is straightforward, in other cases it&amp;rsquo;s considerably more complex, so we thought it would be a good idea to write an article with all this knowledge, including a step by step guide on how we can validate that a backend works with Ember-CSI.
 For the final validation we will be using Ember-CSI&amp;rsquo;s Kubernetes example to deploy a 3 nodes Kubernetes cluster with 1 infrastructure node a 2 workload nodes.</description>
     </item>

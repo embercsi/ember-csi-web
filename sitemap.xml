@@ -3,55 +3,55 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>/getstarted/openshift/</loc>
+    <loc>https://ember-csi.io/getstarted/openshift/</loc>
     <lastmod>2021-02-16T16:00:00+01:00</lastmod>
   </url>
   
   <url>
-    <loc>/getstarted/k8s/</loc>
+    <loc>https://ember-csi.io/getstarted/k8s/</loc>
     <lastmod>2019-03-13T16:30:00+01:00</lastmod>
   </url>
   
   <url>
-    <loc>/getstarted/kubevirt/</loc>
+    <loc>https://ember-csi.io/getstarted/kubevirt/</loc>
     <lastmod>2019-06-03T14:30:57-05:00</lastmod>
   </url>
   
   <url>
-    <loc>/post/cinder_csi-ember_csi/</loc>
+    <loc>https://ember-csi.io/post/cinder_csi-ember_csi/</loc>
     <lastmod>2020-06-17T17:05:00+02:00</lastmod>
   </url>
   
   <url>
-    <loc>/post/validation/</loc>
+    <loc>https://ember-csi.io/post/validation/</loc>
     <lastmod>2019-04-24T18:14:00+02:00</lastmod>
   </url>
   
   <url>
-    <loc>/categories/</loc>
+    <loc>https://ember-csi.io/categories/</loc>
     <priority>0</priority>
   </url>
   
   <url>
-    <loc>/</loc>
+    <loc>https://ember-csi.io/</loc>
     <lastmod>2021-02-16T16:00:00+01:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
-    <loc>/getstarted/</loc>
+    <loc>https://ember-csi.io/getstarted/</loc>
     <lastmod>2021-02-16T16:00:00+01:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
-    <loc>/post/</loc>
+    <loc>https://ember-csi.io/post/</loc>
     <lastmod>2020-06-17T17:05:00+02:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
-    <loc>/tags/</loc>
+    <loc>https://ember-csi.io/tags/</loc>
     <priority>0</priority>
   </url>
   
